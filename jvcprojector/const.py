@@ -1,0 +1,35 @@
+"""Device constants for a JVC Projector."""
+
+from typing import Final
+
+NOSIGNAL: Final = "nosignal"
+SIGNAL: Final = "signal"
+
+OFF: Final = "off"
+STANDBY: Final = "standby"
+ON: Final = "on"
+WARMING: Final = "warming"
+COOLING: Final = "cooling"
+ERROR: Final = "error"
+
+INPUT_HDMI1 = "hdmi1"
+INPUT_HDMI2 = "hdmi2"
+
+REMOTE_MENU: Final = "732E"
+REMOTE_MENU_UP: Final = "7301"
+REMOTE_MENU_DOWN: Final = "7302"
+REMOTE_MENU_LEFT: Final = "7336"
+REMOTE_MENU_RIGHT: Final = "7334"
+REMOTE_OK: Final = "732F"
+REMOTE_BACK: Final = "7303"
+REMOTE_MPC: Final = "73E0"
+REMOTE_HIDE: Final = "731D"
+REMOTE_INFO: Final = "7374"
+REMOTE_INPUT: Final = "7308"
+REMOTE_ADVANCED_MENU: Final = "7373"
+REMOTE_PICTURE_MODE: Final = "73E4"
+REMOTE_COLOR_PROFILE: Final = "7388"
+REMOTE_LENS_CONTROL: Final = "7330"
+REMOTE_SETTING_MEMORY: Final = "73C4"
+REMOTE_GAMMA_SETTINGS: Final = "73F5"
+REMOTE_CMD: Final = "738A"
