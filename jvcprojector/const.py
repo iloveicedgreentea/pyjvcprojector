@@ -2,9 +2,7 @@
 
 from typing import Final
 
-NOSIGNAL: Final = "nosignal"
-SIGNAL: Final = "signal"
-
+POWER: Final = "power"
 OFF: Final = "off"
 STANDBY: Final = "standby"
 ON: Final = "on"
@@ -12,8 +10,13 @@ WARMING: Final = "warming"
 COOLING: Final = "cooling"
 ERROR: Final = "error"
 
+INPUT: Final = "input"
 INPUT_HDMI1 = "hdmi1"
 INPUT_HDMI2 = "hdmi2"
+
+SOURCE: Final = "source"
+NOSIGNAL: Final = "nosignal"
+SIGNAL: Final = "signal"
 
 REMOTE_MENU: Final = "732E"
 REMOTE_UP: Final = "7301"

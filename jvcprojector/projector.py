@@ -93,9 +93,6 @@ class JvcProjector:
         self._device = JvcDevice(self._ip, self._port, self._timeout, self._password)
         await self._device.connect()
 
-        if not await self.test():
-            raise JvcProjectorConnectError("Failed to verify connection")
-
         if get_info:
             await self.get_info()
 
