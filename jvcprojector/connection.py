@@ -37,6 +37,10 @@ class JvcConnection:
         """Return port."""
         return self._port
 
+    def is_connected(self) -> bool:
+        """Return if connected to device."""
+        return self._reader is not None and self._writer is not None
+
     async def connect(self) -> None:
         """Connect to device."""
         assert self._reader is None and self._writer is None

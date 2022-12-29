@@ -32,7 +32,6 @@ async def test_send_op(conn: AsyncMock):
     assert cmd.response is None
     conn.connect.assert_called_once()
     conn.write.assert_has_calls([call(PJREQ), call(cc(HEAD_OP, f"{command.POWER}1"))])
-    conn.disconnect.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -49,7 +48,6 @@ async def test_send_ref(conn: AsyncMock):
     assert cmd.response == const.ON
     conn.connect.assert_called_once()
     conn.write.assert_has_calls([call(PJREQ), call(cc(HEAD_REF, command.POWER))])
-    conn.disconnect.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -84,7 +82,6 @@ async def test_connection_refused_retry(conn: AsyncMock):
     assert cmd.ack
     assert conn.connect.call_count == 2
     conn.write.assert_has_calls([call(PJREQ), call(cc(HEAD_OP, f"{command.POWER}1"))])
-    conn.disconnect.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -96,7 +93,6 @@ async def test_connection_busy_retry(conn: AsyncMock):
     await dev.send([cmd])
     assert conn.connect.call_count == 2
     conn.write.assert_has_calls([call(PJREQ), call(cc(HEAD_OP, f"{command.POWER}1"))])
-    conn.disconnect.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -109,7 +105,6 @@ async def test_connection_bad_handshake_error(conn: AsyncMock):
         await dev.send([cmd])
     conn.connect.assert_called_once()
     assert not cmd.ack
-    conn.disconnect.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -122,7 +117,6 @@ async def test_send_op_bad_ack_error(conn: AsyncMock):
         await dev.send([cmd])
     conn.connect.assert_called_once()
     assert not cmd.ack
-    conn.disconnect.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -135,4 +129,3 @@ async def test_send_ref_bad_ack_error(conn: AsyncMock):
         await dev.send([cmd])
     conn.connect.assert_called_once()
     assert not cmd.ack
-    conn.disconnect.assert_called_once()

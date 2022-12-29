@@ -19,6 +19,7 @@ def fixture_mock_connection():
         conn = mock.return_value
         conn.ip = IP
         conn.port = PORT
+        conn.is_connected.return_value = False
         conn.read.side_effect = [PJOK, PJACK]
         conn.readline.side_effect = [cc(HEAD_ACK, command.POWER)]
         conn.write = AsyncMock(return_value=None)

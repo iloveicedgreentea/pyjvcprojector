@@ -100,7 +100,9 @@ class JvcProjector:
 
     async def disconnect(self) -> None:
         """Disconnect from device."""
-        self._device = None
+        if self._device:
+            await self._device.disconnect()
+            self._device = None
 
     async def get_info(self) -> dict[str, str]:
         """Get device info."""
