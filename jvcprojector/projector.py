@@ -36,17 +36,19 @@ class JvcProjector:
         self._password = password
 
         self._device: JvcDevice | None = None
-        self._ip: str | None = None
-        self._model: str | None = None
-        self._mac: str | None = None
-        self._version: str | None = None
+        self._ip: str = ""
+        self._model: str = ""
+        self._mac: str = ""
+        self._version: str = ""
 
         self._lock = asyncio.Lock()
         self._connected = False
 
     @property
-    def ip(self) -> str | None:
+    def ip(self) -> str:
         """Returns ip."""
+        if not self._ip:
+            raise JvcProjectorError("ip not initialized")
         return self._ip
 
     @property
@@ -60,18 +62,24 @@ class JvcProjector:
         return self._port
 
     @property
-    def model(self) -> str | None:
+    def model(self) -> str:
         """Returns model name."""
+        if not self._mac:
+            raise JvcProjectorError("model not initialized")
         return self._model
 
     @property
-    def mac(self) -> str | None:
+    def mac(self) -> str:
         """Returns mac address."""
+        if not self._mac:
+            raise JvcProjectorError("mac address not initialized")
         return self._mac
 
     @property
-    def version(self) -> str | None:
+    def version(self) -> str:
         """Get device software version."""
+        if not self._version:
+            raise JvcProjectorError("version address not initialized")
         return self._version
 
     async def connect(self, get_info: bool = False) -> None:
@@ -79,7 +87,7 @@ class JvcProjector:
         if self._connected:
             return
 
-        if self._ip is None:
+        if not self._ip:
             self._ip = await resolve(self._host)
 
         self._device = JvcDevice(self._ip, self._port, self._timeout, self._password)
@@ -108,7 +116,7 @@ class JvcProjector:
 
         if mac.response is None:
             _LOGGER.warning("Mac address unavailable, using hash of model")
-            mac.response = hashlib.md5(model.response.encode()).digest().hex()[0:12]
+            mac.response = hashlib.md5(model.response.encode()).digest().hex()[0:14]
 
         self._model = model.response
         self._mac = mac.response

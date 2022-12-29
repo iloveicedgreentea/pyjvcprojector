@@ -40,7 +40,7 @@ async def test_unknown_mac(dev: AsyncMock):
     p = JvcProjector(IP)
     await p.connect()
     await p.get_info()
-    assert p.mac == hashlib.md5(MODEL.encode()).digest().hex().encode()[0:12].decode()
+    assert p.mac == hashlib.md5(MODEL.encode()).digest().hex().encode()[0:14].decode()
     assert p.model == MODEL
 
 
