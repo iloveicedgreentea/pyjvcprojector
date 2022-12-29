@@ -44,7 +44,7 @@ async def main():
     print("Projector info:")
     print(await jp.get_info())
 
-    if await jp.get_power() == const.STANDBY:
+    if await jp.get_power() != const.ON:
         await jp.power_on()
         print("Waiting for projector to warmup...")
         while await jp.get_power() != const.ON:

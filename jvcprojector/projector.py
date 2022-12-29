@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
+from typing import Optional
 
 from . import command, const
-from .command import JvcCommand
+from .command import JvcCommand, TEST
 from .connection import resolve
 from .device import JvcDevice
 from .error import JvcProjectorConnectError, JvcProjectorError
@@ -27,7 +28,7 @@ class JvcProjector:
         *,
         port: int = DEFAULT_PORT,
         timeout: float = DEFAULT_TIMEOUT,
-        password: str | None = None,
+        password: Optional[str] = None,
     ) -> None:
         """Initialize class."""
         self._host = host
@@ -35,14 +36,13 @@ class JvcProjector:
         self._timeout = timeout
         self._password = password
 
-        self._device: JvcDevice | None = None
+        self._device: Optional[JvcDevice] = None
         self._ip: str = ""
         self._model: str = ""
         self._mac: str = ""
         self._version: str = ""
 
         self._lock = asyncio.Lock()
-        self._connected = False
 
     @property
     def ip(self) -> str:
@@ -83,14 +83,15 @@ class JvcProjector:
         return self._version
 
     async def connect(self, get_info: bool = False) -> None:
-        """Connect to devices."""
-        if self._connected:
+        """Connect to device."""
+        if self._device:
             return
 
         if not self._ip:
             self._ip = await resolve(self._host)
 
         self._device = JvcDevice(self._ip, self._port, self._timeout, self._password)
+        await self._device.connect()
 
         if not await self.test():
             raise JvcProjectorConnectError("Failed to verify connection")
@@ -98,12 +99,10 @@ class JvcProjector:
         if get_info:
             await self.get_info()
 
-        self._connected = True
-
     async def disconnect(self) -> None:
         """Disconnect from device."""
+        await self._device.disconnect()
         self._device = None
-        self._connected = False
 
     async def get_info(self) -> dict[str, str]:
         """Get device info."""
@@ -135,19 +134,19 @@ class JvcProjector:
             "source": res[2] or const.NOSIGNAL,
         }
 
-    async def get_version(self) -> str | None:
+    async def get_version(self) -> Optional[str]:
         """Get device software version."""
         return await self.ref(command.VERSION)
 
-    async def get_power(self) -> str | None:
+    async def get_power(self) -> Optional[str]:
         """Get power state."""
         return await self.ref(command.POWER)
 
-    async def get_input(self) -> str | None:
+    async def get_input(self) -> Optional[str]:
         """Get current input."""
         return await self.ref(command.INPUT)
 
-    async def get_signal(self) -> str | None:
+    async def get_signal(self) -> Optional[str]:
         """Get if has signal."""
         return await self.ref(command.SOURCE)
 
@@ -173,16 +172,34 @@ class JvcProjector:
         """Send operation code."""
         await self._send([JvcCommand(code, False)])
 
-    async def ref(self, code: str) -> str | None:
+    async def ref(self, code: str) -> Optional[str]:
         """Send reference code."""
         return (await self._send([JvcCommand(code, True)]))[0]
 
-    async def _send(self, cmds: list[JvcCommand]) -> list[str | None]:
+    async def _send(self, cmds: list[JvcCommand]) -> list[Optional[str]]:
         """Send command to device."""
         if self._device is None:
-            raise JvcProjectorError("Must call connect before sending commands")
+            raise JvcProjectorError("Must connect before sending commands")
+
+        if not self._device.is_connected():
+            await self._device.connect()
 
         async with self._lock:
-            await self._device.send(cmds)
+            for cmd in cmds:
+                await self._device.send(cmd)
+                if not cmd.ack:
+                    # An un-acked command can be normal, but can also but can also mean
+                    # the device remotely disconnected. Send a test command to confirm.
+                    cmd = JvcCommand(TEST)
+                    await self._device.send(cmd)
+                    if not cmd.ack:
+                        _LOGGER.debug("Remote end disconnected")
+                        await self._device.disconnect()
+                        await asyncio.sleep(20)
+                        break
+
+                # If power is standby, skip remaining checks that will timeout anyway.
+                if cmd.is_ref and cmd.is_power and cmd.response != const.ON:
+                    break
 
         return [cmd.response for cmd in cmds]

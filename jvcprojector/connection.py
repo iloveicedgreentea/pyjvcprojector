@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import dns.asyncresolver
 import dns.exception
@@ -24,8 +24,8 @@ class JvcConnection:
         self._ip = ip
         self._port = port
         self._timeout = timeout
-        self._reader: asyncio.StreamReader | None = None
-        self._writer: asyncio.StreamWriter | None = None
+        self._reader: Optional[asyncio.StreamReader] = None
+        self._writer: Optional[asyncio.StreamWriter] = None
 
     @property
     def ip(self) -> str:
@@ -36,6 +36,10 @@ class JvcConnection:
     def port(self) -> int:
         """Return port."""
         return self._port
+
+    def is_connected(self) -> bool:
+        """Return if connected to device."""
+        return self._reader is not None and self._writer is not None
 
     async def connect(self) -> None:
         """Connect to device."""
