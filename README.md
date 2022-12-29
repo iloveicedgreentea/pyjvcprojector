@@ -2,6 +2,8 @@
 
 A python library for controlling a JVC Projector over a network connection.
 
+https://pypi.org/project/pyjvcprojector/
+
 ## Features
 
 ### Key wrapper functions:
