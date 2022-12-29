@@ -185,21 +185,25 @@ class JvcProjector:
             await self._device.connect()
 
         async with self._lock:
-            for cmd in cmds:
-                await self._device.send(cmd)
-                if not cmd.ack:
-                    # An un-acked command can be normal, but can also but can also mean
-                    # the device remotely disconnected. Send a test command to confirm.
-                    cmd = JvcCommand(TEST)
+            try:
+                for cmd in cmds:
                     await self._device.send(cmd)
                     if not cmd.ack:
-                        _LOGGER.debug("Remote end disconnected")
-                        await self._device.disconnect()
-                        await asyncio.sleep(20)
-                        break
+                        # An un-acked command can be normal, but can also but can also mean
+                        # the device remotely disconnected. Send a test command to confirm.
+                        cmd = JvcCommand(TEST)
+                        await self._device.send(cmd)
+                        if not cmd.ack:
+                            _LOGGER.debug("Remote end disconnected")
+                            await self._device.disconnect()
+                            await asyncio.sleep(20)
+                            break
 
-                # If power is standby, skip remaining checks that will timeout anyway.
-                if cmd.is_ref and cmd.is_power and cmd.response != const.ON:
-                    break
+                    # If power is standby, skip remaining checks that will timeout anyway.
+                    if cmd.is_ref and cmd.is_power and cmd.response != const.ON:
+                        break
+            except JvcProjectorError:
+                await self._device.disconnect()
+                raise
 
         return [cmd.response for cmd in cmds]
