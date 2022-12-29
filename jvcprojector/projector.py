@@ -8,7 +8,7 @@ import logging
 from typing import Optional
 
 from . import command, const
-from .command import JvcCommand, TEST
+from .command import JvcCommand
 from .connection import resolve
 from .device import JvcDevice
 from .error import JvcProjectorConnectError, JvcProjectorError
@@ -91,14 +91,15 @@ class JvcProjector:
             self._ip = await resolve(self._host)
 
         self._device = JvcDevice(self._ip, self._port, self._timeout, self._password)
-        await self._device.connect()
+
+        if not await self.test():
+            raise JvcProjectorConnectError("Failed to verify connection")
 
         if get_info:
             await self.get_info()
 
     async def disconnect(self) -> None:
         """Disconnect from device."""
-        await self._device.disconnect()
         self._device = None
 
     async def get_info(self) -> dict[str, str]:
@@ -176,31 +177,9 @@ class JvcProjector:
     async def _send(self, cmds: list[JvcCommand]) -> list[Optional[str]]:
         """Send command to device."""
         if self._device is None:
-            raise JvcProjectorError("Must connect before sending commands")
-
-        if not self._device.is_connected():
-            await self._device.connect()
+            raise JvcProjectorError("Must call connect before sending commands")
 
         async with self._lock:
-            try:
-                for cmd in cmds:
-                    await self._device.send(cmd)
-                    if not cmd.ack:
-                        # An un-acked command can be normal, but can also but can also mean
-                        # the device remotely disconnected. Send a test command to confirm.
-                        cmd = JvcCommand(TEST)
-                        await self._device.send(cmd)
-                        if not cmd.ack:
-                            _LOGGER.debug("Remote end disconnected")
-                            await self._device.disconnect()
-                            await asyncio.sleep(20)
-                            break
-
-                    # If power is standby, skip remaining checks that will timeout anyway.
-                    if cmd.is_ref and cmd.is_power and cmd.response != const.ON:
-                        break
-            except JvcProjectorError:
-                await self._device.disconnect()
-                raise
+            await self._device.send(cmds)
 
         return [cmd.response for cmd in cmds]

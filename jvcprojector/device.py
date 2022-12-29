@@ -22,7 +22,6 @@ from .command import (
     PJOK,
     PJREQ,
 )
-from .command import TEST
 from .connection import JvcConnection
 from .error import (
     JvcProjectorAuthError,
@@ -51,7 +50,19 @@ class JvcDevice:
 
         self._last: float = 0.0
 
-    async def connect(self) -> None:
+    async def send(self, cmds: list[JvcCommand]) -> None:
+        """Send commands to device."""
+        try:
+            await self._connect()
+            for cmd in cmds:
+                await self._send(cmd)
+                # If device is not on, skip remaining checks that will only timeout
+                if cmd.is_ref and cmd.is_power and cmd.response != const.ON:
+                    break
+        finally:
+            await self._disconnect()
+
+    async def _connect(self) -> None:
         """Connect to device."""
         elapsed = time() - self._last
         if elapsed < 0.75:
@@ -111,20 +122,9 @@ class JvcDevice:
 
         self._last = time()
 
-    async def disconnect(self):
-        """Disconnect from device."""
-        if self._conn.is_connected():
-            _LOGGER.debug("Disconnecting")
-        await self._conn.disconnect()
-
-    def is_connected(self) -> bool:
-        """Return if connected to device."""
-        return self._conn.is_connected()
-
-    async def send(self, cmd: JvcCommand) -> None:
+    async def _send(self, cmd: JvcCommand) -> None:
         """Send command to device."""
         assert len(cmd.code) >= 2
-        assert self._conn.is_connected()
 
         code = cmd.code.encode()
         data = (HEAD_REF if cmd.is_ref else HEAD_OP) + code + END

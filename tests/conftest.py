@@ -41,11 +41,12 @@ def fixture_mock_device(request):
         if hasattr(request, "param"):
             fixture.update(request.param)
 
-        async def send(cmd: JvcCommand):
-            if cmd.code in fixture:
-                if fixture[cmd.code]:
-                    cmd.response = fixture[cmd.code]
-                cmd.ack = True
+        async def send(cmds: list[JvcCommand]):
+            for cmd in cmds:
+                if cmd.code in fixture:
+                    if fixture[cmd.code]:
+                        cmd.response = fixture[cmd.code]
+                    cmd.ack = True
 
         dev = mock.return_value
         dev.send.side_effect = send
