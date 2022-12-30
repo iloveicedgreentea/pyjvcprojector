@@ -127,7 +127,6 @@ class JvcProjector:
         inp = JvcCommand(command.INPUT, True)
         src = JvcCommand(command.SOURCE, True)
         res = await self._send([pwr, inp, src])
-        await self._device.disconnect()
         return {
             "power": res[0] or "",
             "input": res[1] or const.NOSIGNAL,
