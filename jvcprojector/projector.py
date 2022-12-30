@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import logging
 from typing import Optional
@@ -41,8 +40,6 @@ class JvcProjector:
         self._model: str = ""
         self._mac: str = ""
         self._version: str = ""
-
-        self._lock = asyncio.Lock()
 
     @property
     def ip(self) -> str:
@@ -106,6 +103,7 @@ class JvcProjector:
 
     async def get_info(self) -> dict[str, str]:
         """Get device info."""
+        assert self._device
         model = JvcCommand(command.MODEL, True)
         mac = JvcCommand(command.MAC, True)
         await self._send([model, mac])
@@ -124,10 +122,12 @@ class JvcProjector:
 
     async def get_state(self) -> dict[str, str]:
         """Get device state."""
+        assert self._device
         pwr = JvcCommand(command.POWER, True)
         inp = JvcCommand(command.INPUT, True)
         src = JvcCommand(command.SOURCE, True)
         res = await self._send([pwr, inp, src])
+        await self._device.disconnect()
         return {
             "power": res[0] or "",
             "input": res[1] or const.NOSIGNAL,
@@ -181,7 +181,6 @@ class JvcProjector:
         if self._device is None:
             raise JvcProjectorError("Must call connect before sending commands")
 
-        async with self._lock:
-            await self._device.send(cmds)
+        await self._device.send(cmds)
 
         return [cmd.response for cmd in cmds]
