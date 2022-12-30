@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Optional
 
 from . import command, const
 from .command import JvcCommand
@@ -27,7 +26,7 @@ class JvcProjector:
         *,
         port: int = DEFAULT_PORT,
         timeout: float = DEFAULT_TIMEOUT,
-        password: Optional[str] = None,
+        password: str | None = None,
     ) -> None:
         """Initialize class."""
         self._host = host
@@ -35,7 +34,7 @@ class JvcProjector:
         self._timeout = timeout
         self._password = password
 
-        self._device: Optional[JvcDevice] = None
+        self._device: JvcDevice | None = None
         self._ip: str = ""
         self._model: str = ""
         self._mac: str = ""
@@ -133,19 +132,19 @@ class JvcProjector:
             "source": res[2] or const.NOSIGNAL,
         }
 
-    async def get_version(self) -> Optional[str]:
+    async def get_version(self) -> str | None:
         """Get device software version."""
         return await self.ref(command.VERSION)
 
-    async def get_power(self) -> Optional[str]:
+    async def get_power(self) -> str | None:
         """Get power state."""
         return await self.ref(command.POWER)
 
-    async def get_input(self) -> Optional[str]:
+    async def get_input(self) -> str | None:
         """Get current input."""
         return await self.ref(command.INPUT)
 
-    async def get_signal(self) -> Optional[str]:
+    async def get_signal(self) -> str | None:
         """Get if has signal."""
         return await self.ref(command.SOURCE)
 
@@ -171,11 +170,11 @@ class JvcProjector:
         """Send operation code."""
         await self._send([JvcCommand(code, False)])
 
-    async def ref(self, code: str) -> Optional[str]:
+    async def ref(self, code: str) -> str | None:
         """Send reference code."""
         return (await self._send([JvcCommand(code, True)]))[0]
 
-    async def _send(self, cmds: list[JvcCommand]) -> list[Optional[str]]:
+    async def _send(self, cmds: list[JvcCommand]) -> list[str | None]:
         """Send command to device."""
         if self._device is None:
             raise JvcProjectorError("Must call connect before sending commands")

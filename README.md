@@ -6,21 +6,22 @@ https://pypi.org/project/pyjvcprojector/
 
 ## Features
 
-### Key wrapper functions:
-* `JvcProjector::get_power()` gets power state (standby, on, cooling, warming, error)
+### Convenience functions:
 * `JvcProjector::power_on()` turns on power.
 * `JvcProjector::power_off()` turns off power.
-* `JvcProjector::get_input()` get current input (hdmi1, hdmi2, etc).
-* `JvcProjector::get_signal()` get signal state (signal, nosignal).
-* `JvcProjector::get_info()` returns {power state, current input, and signal status}.
-* `JvcProjector::get_status()` returns {projector model, mac address}.
+* `JvcProjector::get_power()` gets power state (_standby, on, cooling, warming, error_)
+* `JvcProjector::get_input()` get current input (_hdmi1, hdmi2_).
+* `JvcProjector::get_signal()` get signal state (_signal, nosignal_).
+* `JvcProjector::get_state()` returns {_power, input, signal_}.
+* `JvcProjector::get_info()` returns {_model, mac address_}.
 
 ### Send remote control codes
-* `JvcProjector::remote(code)` sends remote control command
+A wrapper for calling `JvcProjector::op(f"RC{code}")`
+* `JvcProjector::remote(code)` sends remote control command.
 
 ### Send raw command codes
-* `JvcProjector::ref(code)` sends reference commands (read data)
-* `JvcProjector::op(code)` sends operation commands (write data)
+* `JvcProjector::ref(code)` sends reference commands to read data. `code` is formatted `f"{cmd}"`.
+* `JvcProjector::op(code)` sends operation commands to write data. `code` is formatted `f"{cmd}{val}"`.
 
 ## Installation
 

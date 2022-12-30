@@ -1,7 +1,7 @@
 """pytest fixtures"""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -13,16 +13,37 @@ from . import IP, MAC, MODEL, PORT, cc
 
 
 @pytest.fixture(name="conn")
-def fixture_mock_connection():
+def fixture_mock_connection(request):
     """Return a mocked connection."""
     with patch("jvcprojector.device.JvcConnection", autospec=True) as mock:
+        connected = False
+
+        fixture = {"raise_on_connect": 0}
+
+        if hasattr(request, "param"):
+            fixture.update(request.param)
+
+        def connect():
+            nonlocal connected
+            if fixture["raise_on_connect"] > 0:
+                fixture["raise_on_connect"] -= 1
+                raise ConnectionRefusedError
+            connected = True
+
+        def disconnect():
+            nonlocal connected
+            connected = False
+
         conn = mock.return_value
         conn.ip = IP
         conn.port = PORT
-        conn.is_connected.return_value = False
+        conn.is_connected.side_effect = lambda: connected
+        conn.connect.side_effect = connect
+        conn.disconnect.side_effect = disconnect
         conn.read.side_effect = [PJOK, PJACK]
         conn.readline.side_effect = [cc(HEAD_ACK, command.POWER)]
-        conn.write = AsyncMock(return_value=None)
+        conn.write.side_effect = lambda p: None
+
         yield conn
 
 

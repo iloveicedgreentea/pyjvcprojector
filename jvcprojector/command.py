@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Callable
-from typing import Final, Optional
+from typing import Final
 
 from . import const
 
@@ -43,10 +43,10 @@ class JvcCommand:
         self.code = code
         self.is_ref = is_ref
         self.ack = False
-        self._response: Optional[str] = None
+        self._response: str | None = None
 
     @property
-    def response(self) -> Optional[str]:
+    def response(self) -> str | None:
         """Returns command response."""
         if not self.is_ref or self._response is None:
             return None

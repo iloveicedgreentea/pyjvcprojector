@@ -6,9 +6,24 @@ from unittest.mock import AsyncMock
 import pytest
 
 from jvcprojector import command, const
+from jvcprojector.error import JvcProjectorError
 from jvcprojector.projector import JvcProjector
 
 from . import IP, MAC, MODEL, PORT
+
+
+@pytest.mark.asyncio
+async def test_init(dev: AsyncMock):
+    """Test init succeeds."""
+    p = JvcProjector(IP, port=PORT)
+    assert p.host == IP
+    assert p.port == PORT
+    with pytest.raises(JvcProjectorError):
+        assert p.ip
+    with pytest.raises(JvcProjectorError):
+        assert p.model
+    with pytest.raises(JvcProjectorError):
+        assert p.mac
 
 
 @pytest.mark.asyncio
@@ -16,10 +31,9 @@ async def test_connect(dev: AsyncMock):
     """Test connect succeeds."""
     p = JvcProjector(IP, port=PORT)
     await p.connect()
-    assert p.host == IP
     assert p.ip == IP
-    assert p.port == PORT
     await p.disconnect()
+    assert dev.disconnect.call_count == 1
 
 
 @pytest.mark.asyncio

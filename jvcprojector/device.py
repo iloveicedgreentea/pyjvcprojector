@@ -6,7 +6,7 @@ import asyncio
 import logging
 import struct
 from time import time
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from . import const
 from .command import (
@@ -39,7 +39,7 @@ class JvcDevice:
     """Class for representing a JVC Projector device."""
 
     def __init__(
-        self, ip: str, port: int, timeout: float, password: Optional[str] = None
+        self, ip: str, port: int, timeout: float, password: str | None = None
     ) -> None:
         """Initialize class."""
         self._conn = JvcConnection(ip, port, timeout)
@@ -49,22 +49,25 @@ class JvcDevice:
             self._auth = b"_" + struct.pack("10s", password.encode())
 
         self._lock = asyncio.Lock()
-        self._keepalive: Optional[asyncio.Task] = None
+        self._keepalive: asyncio.Task | None = None
         self._last: float = 0.0
 
     async def send(self, cmds: list[JvcCommand]) -> None:
         """Send commands to device."""
         async with self._lock:
+            # Treat status refreshes with special handling
             is_refresh = len(cmds) > 1 and cmds[0].is_ref and cmds[0].is_power
-            keepalive = 2
 
+            # Connection keepalive window for fast command repeats
+            keepalive = True
+
+            # Connection keepalive window for fast command repeats
             if self._keepalive:
-                # Allow fast repeats to keep connection alive
                 self._keepalive.cancel()
                 self._keepalive = None
             elif is_refresh:
-                # Don't extend keepalive window this call was a refresh
-                keepalive = 0
+                # Don't extend window below if this was a refresh
+                keepalive = False
 
             try:
                 if not self._conn.is_connected():
@@ -72,35 +75,39 @@ class JvcDevice:
 
                 for cmd in cmds:
                     await self._send(cmd)
-                    # If device is not on, skip remaining checks that will just timeout
+                    # If device is not on skip remaining commands
                     if is_refresh and cmd.response != const.ON:
                         break
             except Exception:
-                await self.disconnect()
+                keepalive = False
                 raise
             finally:
-                if self._conn.is_connected():
-                    # Delay disconnect to allow fast repeats to keep connection alive
-                    self._keepalive = asyncio.create_task(self.disconnect(keepalive))
+                # Delay disconnect to keep connection alive
+                if keepalive:
+                    self._keepalive = asyncio.create_task(self._disconnect(5))
+                else:
+                    await self._disconnect()
 
     async def _connect(self) -> None:
         """Connect to device."""
+        assert not self._conn.is_connected()
+
         elapsed = time() - self._last
         if elapsed < 0.75:
             await asyncio.sleep(0.75 - elapsed)
 
         retries = 0
-        while retries < 16:
+        while retries < 10:
             try:
                 _LOGGER.debug("Connecting to %s", self._conn.ip)
                 await self._conn.connect()
             except ConnectionRefusedError:
                 retries += 1
-                if retries == 12:
+                if retries == 5:
                     _LOGGER.warning("Retrying refused connection")
                 else:
                     _LOGGER.debug("Retrying refused connection")
-                await asyncio.sleep(0.1 * retries)
+                await asyncio.sleep(0.2 * retries)
                 continue
             except (asyncio.TimeoutError, ConnectionError) as err:
                 raise JvcProjectorConnectError from err
@@ -145,6 +152,7 @@ class JvcDevice:
 
     async def _send(self, cmd: JvcCommand) -> None:
         """Send command to device."""
+        assert self._conn.is_connected()
         assert len(cmd.code) >= 2
 
         code = cmd.code.encode()
@@ -190,15 +198,16 @@ class JvcDevice:
 
         cmd.ack = True
 
-    async def disconnect(self, delay: int = 0) -> None:
+    async def disconnect(self) -> None:
         """Disconnect from device."""
         if self._keepalive:
             self._keepalive.cancel()
-            self._keepalive = None
+        await self._disconnect()
 
+    async def _disconnect(self, delay: int = 0) -> None:
+        """Disconnect from device."""
         if delay:
             await asyncio.sleep(delay)
-
+        self._keepalive = None
         await self._conn.disconnect()
-
         _LOGGER.debug("Disconnected")

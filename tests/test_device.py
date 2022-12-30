@@ -28,6 +28,7 @@ async def test_send_op(conn: AsyncMock):
     dev = JvcDevice(IP, PORT, TIMEOUT)
     cmd = JvcCommand(f"{command.POWER}1")
     await dev.send([cmd])
+    await dev.disconnect()
     assert cmd.ack
     assert cmd.response is None
     conn.connect.assert_called_once()
@@ -44,6 +45,7 @@ async def test_send_ref(conn: AsyncMock):
     dev = JvcDevice(IP, PORT, TIMEOUT)
     cmd = JvcCommand(command.POWER, True)
     await dev.send([cmd])
+    await dev.disconnect()
     assert cmd.ack
     assert cmd.response == const.ON
     conn.connect.assert_called_once()
@@ -56,6 +58,7 @@ async def test_send_with_password8(conn: AsyncMock):
     dev = JvcDevice(IP, PORT, TIMEOUT, "passwd78")
     cmd = JvcCommand(f"{command.POWER}1")
     await dev.send([cmd])
+    await dev.disconnect()
     conn.write.assert_has_calls(
         [call(PJREQ + b"_passwd78\x00\x00"), call(cc(HEAD_OP, f"{command.POWER}1"))]
     )
@@ -67,18 +70,20 @@ async def test_send_with_password10(conn: AsyncMock):
     dev = JvcDevice(IP, PORT, TIMEOUT, "passwd7890")
     cmd = JvcCommand(f"{command.POWER}1")
     await dev.send([cmd])
+    await dev.disconnect()
     conn.write.assert_has_calls(
         [call(PJREQ + b"_passwd7890"), call(cc(HEAD_OP, f"{command.POWER}1"))]
     )
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("conn", [{"raise_on_connect": 1}], indirect=True)
 async def test_connection_refused_retry(conn: AsyncMock):
     """Test connection refused results in retry."""
-    conn.connect.side_effect = [ConnectionRefusedError, None]
     dev = JvcDevice(IP, PORT, TIMEOUT)
     cmd = JvcCommand(f"{command.POWER}1")
     await dev.send([cmd])
+    await dev.disconnect()
     assert cmd.ack
     assert conn.connect.call_count == 2
     conn.write.assert_has_calls([call(PJREQ), call(cc(HEAD_OP, f"{command.POWER}1"))])
@@ -91,6 +96,7 @@ async def test_connection_busy_retry(conn: AsyncMock):
     dev = JvcDevice(IP, PORT, TIMEOUT)
     cmd = JvcCommand(f"{command.POWER}1")
     await dev.send([cmd])
+    await dev.disconnect()
     assert conn.connect.call_count == 2
     conn.write.assert_has_calls([call(PJREQ), call(cc(HEAD_OP, f"{command.POWER}1"))])
 
@@ -104,6 +110,7 @@ async def test_connection_bad_handshake_error(conn: AsyncMock):
     with pytest.raises(JvcProjectorCommandError):
         await dev.send([cmd])
     conn.connect.assert_called_once()
+    conn.disconnect.assert_called_once()
     assert not cmd.ack
 
 
@@ -116,6 +123,7 @@ async def test_send_op_bad_ack_error(conn: AsyncMock):
     with pytest.raises(JvcProjectorCommandError):
         await dev.send([cmd])
     conn.connect.assert_called_once()
+    conn.disconnect.assert_called_once()
     assert not cmd.ack
 
 
@@ -128,4 +136,5 @@ async def test_send_ref_bad_ack_error(conn: AsyncMock):
     with pytest.raises(JvcProjectorCommandError):
         await dev.send([cmd])
     conn.connect.assert_called_once()
+    conn.disconnect.assert_called_once()
     assert not cmd.ack
