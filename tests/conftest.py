@@ -56,7 +56,7 @@ def fixture_mock_device(request):
             command.MAC: MAC,
             command.MODEL: MODEL,
             command.POWER: const.ON,
-            command.INPUT: const.INPUT_HDMI1,
+            command.INPUT: const.HDMI1,
             command.SOURCE: const.SIGNAL,
         }
 

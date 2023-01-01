@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import logging
 
 from . import command, const
@@ -14,7 +13,7 @@ from .error import JvcProjectorConnectError, JvcProjectorError
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_PORT = 20554
-DEFAULT_TIMEOUT = 5.0
+DEFAULT_TIMEOUT = 15.0
 
 
 class JvcProjector:
@@ -107,12 +106,11 @@ class JvcProjector:
         mac = JvcCommand(command.MAC, True)
         await self._send([model, mac])
 
+        if mac.response is None:
+            raise JvcProjectorError("Mac address not available")
+
         if model.response is None:
             model.response = "(unknown)"
-
-        if mac.response is None:
-            _LOGGER.warning("Mac address unavailable, using hash of model")
-            mac.response = hashlib.md5(model.response.encode()).digest().hex()[0:14]
 
         self._model = model.response
         self._mac = mac.response

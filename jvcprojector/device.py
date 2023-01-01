@@ -6,7 +6,6 @@ import asyncio
 import logging
 import struct
 from time import time
-from typing import TYPE_CHECKING
 
 from . import const
 from .command import (
@@ -21,6 +20,7 @@ from .command import (
     PJNG,
     PJOK,
     PJREQ,
+    JvcCommand,
 )
 from .connection import JvcConnection
 from .error import (
@@ -29,8 +29,7 @@ from .error import (
     JvcProjectorConnectError,
 )
 
-if TYPE_CHECKING:
-    from .command import JvcCommand
+KEEPALIVE_TTL = 5
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,16 +74,18 @@ class JvcDevice:
 
                 for cmd in cmds:
                     await self._send(cmd)
-                    # If device is not on skip remaining commands
-                    if is_refresh and cmd.response != const.ON:
+                    # If device is not powered on, skip remaining commands
+                    if is_refresh and cmds[0].response != const.ON:
                         break
             except Exception:
                 keepalive = False
                 raise
             finally:
-                # Delay disconnect to keep connection alive
-                if keepalive:
-                    self._keepalive = asyncio.create_task(self._disconnect(5))
+                # Delay disconnect to keep connection alive.
+                if keepalive and cmd and cmd.ack:
+                    self._keepalive = asyncio.create_task(
+                        self._disconnect(KEEPALIVE_TTL)
+                    )
                 else:
                     await self._disconnect()
 

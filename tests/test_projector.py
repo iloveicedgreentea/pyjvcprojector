@@ -53,9 +53,8 @@ async def test_unknown_mac(dev: AsyncMock):
     """Test projector with unknown mac uses model succeeds."""
     p = JvcProjector(IP)
     await p.connect()
-    await p.get_info()
-    assert p.mac == hashlib.md5(MODEL.encode()).digest().hex().encode()[0:14].decode()
-    assert p.model == MODEL
+    with pytest.raises(JvcProjectorError):
+        await p.get_info()
 
 
 @pytest.mark.asyncio
@@ -73,6 +72,6 @@ async def test_get_state(dev: AsyncMock):
     await p.connect()
     assert await p.get_state() == {
         "power": const.ON,
-        "input": const.INPUT_HDMI1,
+        "input": const.HDMI1,
         "source": const.SIGNAL,
     }

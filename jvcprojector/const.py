@@ -11,8 +11,8 @@ COOLING: Final = "cooling"
 ERROR: Final = "error"
 
 INPUT: Final = "input"
-INPUT_HDMI1 = "hdmi1"
-INPUT_HDMI2 = "hdmi2"
+HDMI1 = "hdmi1"
+HDMI2 = "hdmi2"
 
 SOURCE: Final = "source"
 NOSIGNAL: Final = "nosignal"

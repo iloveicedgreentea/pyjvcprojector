@@ -4,16 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import TYPE_CHECKING
 
 import dns.asyncresolver
 import dns.exception
+import dns.resolver
+from dns.rdtypes.IN.A import A
 
 from .error import JvcProjectorConnectError
-
-if TYPE_CHECKING:
-    import dns.resolver
-    from dns.rdtypes.IN.A import A
 
 
 class JvcConnection:

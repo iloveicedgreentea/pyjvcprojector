@@ -103,8 +103,8 @@ class JvcCommand:
             "1": "video",
             "2": "component",
             "3": "pc",
-            "6": "hdmi1",
-            "7": "hdmi2",
+            "6": const.HDMI1,
+            "7": const.HDMI2,
         },
         # Source
         "SC(.)": [const.NOSIGNAL, const.SIGNAL],
