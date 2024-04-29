@@ -125,7 +125,7 @@ class JvcProjector:
         src = JvcCommand(command.SOURCE, True)
         res = await self._send([pwr, inp, src])
         return {
-            "power": res[0] or "",
+            "power": res[0] or None,
             "input": res[1] or const.NOSIGNAL,
             "source": res[2] or const.NOSIGNAL,
         }
