@@ -74,6 +74,8 @@ class JvcDevice:
 
                 for cmd in cmds:
                     await self._send(cmd)
+                    # Throttle commands since some projectors dont like back to back commands
+                    await asyncio.sleep(0.5)
                     # If device is not powered on, skip remaining commands
                     if is_refresh and cmds[0].response != const.ON:
                         break
