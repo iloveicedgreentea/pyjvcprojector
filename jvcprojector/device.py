@@ -29,7 +29,7 @@ from .error import (
     JvcProjectorConnectError,
 )
 
-KEEPALIVE_TTL = 5
+KEEPALIVE_TTL = 2
 
 _LOGGER = logging.getLogger(__name__)
 
