@@ -1,2 +1,2 @@
-dnspython>=2.2.1
+aiodns>=3.2.0
 

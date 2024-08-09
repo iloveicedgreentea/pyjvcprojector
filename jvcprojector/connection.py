@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-import re
+import socket
 
-import dns.asyncresolver
-import dns.exception
-import dns.resolver
-from dns.rdtypes.IN.A import A
+import aiodns
 
 from .error import JvcProjectorConnectError
 
@@ -68,24 +65,13 @@ class JvcConnection:
         self._reader = None
 
 
-async def resolve(host: str, timeout: int = 5) -> str:
+async def resolve(host: str) -> str:
     """Resolve hostname to ip address."""
+    try:
+        res = await aiodns.DNSResolver().gethostbyname(host, socket.AF_INET)
+        if len(res.addresses) < 1:
+            raise aiodns.error.DNSError("Unexpected zero length addresses response")
+    except aiodns.error.DNSError as err:
+        raise JvcProjectorConnectError(f"Failed to resolve host {host}") from err
 
-    async def _resolve() -> str:
-        resolver = dns.asyncresolver.Resolver()
-        answer: list[A] = await resolver.resolve(host, rdtype="A", lifetime=timeout)
-        if len(answer) == 0:
-            raise JvcProjectorConnectError(f"DNS failure resolving host {host}")
-        return answer[0].to_text()
-
-    ip_address = host
-
-    if re.search("^[0-9.]+$", host) is None:
-        try:
-            ip_address = await _resolve()
-        except dns.exception.DNSException as err:
-            raise JvcProjectorConnectError(f"Failed to resolve host {host}") from err
-    else:
-        ip_address = re.sub(r"\b0+(\d)", r"\1", ip_address)
-
-    return ip_address
+    return res.addresses[0]

@@ -9,7 +9,7 @@ from jvcprojector import command, const
 from jvcprojector.error import JvcProjectorError
 from jvcprojector.projector import JvcProjector
 
-from . import IP, MAC, MODEL, PORT
+from . import IP, HOST, MAC, MODEL, PORT
 
 
 @pytest.mark.asyncio
@@ -30,6 +30,16 @@ async def test_init(dev: AsyncMock):
 async def test_connect(dev: AsyncMock):
     """Test connect succeeds."""
     p = JvcProjector(IP, port=PORT)
+    await p.connect()
+    assert p.ip == IP
+    await p.disconnect()
+    assert dev.disconnect.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_connect_host(dev: AsyncMock):
+    """Test connect succeeds."""
+    p = JvcProjector(HOST, port=PORT)
     await p.connect()
     assert p.ip == IP
     await p.disconnect()
