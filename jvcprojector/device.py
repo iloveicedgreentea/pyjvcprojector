@@ -7,6 +7,7 @@ from hashlib import sha256
 import logging
 import struct
 from time import time
+import hashlib
 
 from . import const
 from .command import (
@@ -53,6 +54,15 @@ class JvcDevice:
         self._keepalive: asyncio.Task | None = None
         self._last: float = 0.0
 
+    # TODO: try old handshake, if fails, try new one, then error
+    def _password_to_sha256(self, password: bytes) -> bytes:
+        """
+        Convert a password to sha256 for new models
+        """
+        # TODO: add new models
+        val = f"{password.decode()}JVCKWPJ"
+        return hashlib.sha256(val.encode()).hexdigest().encode()
+
     async def send(self, cmds: list[JvcCommand]) -> None:
         """Send commands to device."""
         async with self._lock:
@@ -81,7 +91,7 @@ class JvcDevice:
                     # Throttle since some projectors dont like back to back commands
                     # tested that as low as 0.1 is okay
                     # however, it IS possible to lock up even NZ models
-                    await asyncio.sleep(0.2) 
+                    await asyncio.sleep(0.2)
                     # If device is not powered on, skip remaining commands
                     if is_refresh and cmds[0].response != const.ON:
                         break
@@ -98,78 +108,80 @@ class JvcDevice:
                     await self._disconnect()
 
     async def _connect(self) -> None:
-        """Connect to device."""
+        """Connect to device and perform handshake."""
         assert not self._conn.is_connected()
 
-        elapsed = time() - self._last
-        if elapsed < 0.75:
-            await asyncio.sleep(0.75 - elapsed)
+        await self._rate_limit()
 
-        retries = 0
-        while retries < 10:
+        MAX_RETRIES = 10
+        for retry in range(MAX_RETRIES):
             try:
                 _LOGGER.debug("Connecting to %s", self._conn.ip)
                 await self._conn.connect()
-            except ConnectionRefusedError:
-                retries += 1
-                if retries == 5:
-                    _LOGGER.warning("Retrying refused connection")
-                else:
-                    _LOGGER.debug("Retrying refused connection")
-                await asyncio.sleep(0.2 * retries)
-                continue
-            except (asyncio.TimeoutError, ConnectionError) as err:
-                raise JvcProjectorConnectError from err
 
-            try:
                 data = await self._conn.read(len(PJOK))
+                _LOGGER.debug("Handshake received %s", data)
+
+                if data == PJNG:
+                    _LOGGER.warning("Handshake retrying on busy")
+                    await asyncio.sleep(0.25 * (retry + 1))
+                    continue
+
+                if data != PJOK:
+                    raise JvcProjectorCommandError("Handshake init invalid")
+
+                await self._authenticate()
+                return
+
+            except ConnectionRefusedError:
+                _LOGGER.debug(
+                    (
+                        "Retrying refused connection"
+                        if retry < 4
+                        else "Retrying refused connection"
+                    ),
+                    exc_info=True,
+                )
+                await asyncio.sleep(0.2 * (retry + 1))
             except asyncio.TimeoutError as err:
                 raise JvcProjectorConnectError("Handshake init timeout") from err
+            except ConnectionError as err:
+                raise JvcProjectorConnectError from err
 
-            _LOGGER.debug("Handshake received %s", data)
+        raise JvcProjectorConnectError("Retries exceeded")
 
-            if data == PJNG:
-                _LOGGER.warning("Handshake retrying on busy")
-                retries += 1
-                await asyncio.sleep(0.25 * retries)
-                continue
+    async def _rate_limit(self):
+        """Implement rate limiting for connections."""
+        elapsed = time() - self._last
+        if elapsed < 0.75:
+            await asyncio.sleep(0.75 - elapsed)
+        self._last = time()
 
-            if data != PJOK:
-                raise JvcProjectorCommandError("Handshake init invalid")
-
-            break
-        else:
-            raise JvcProjectorConnectError("Retries exceeded")
-
+    async def _authenticate(self):
+        """Perform authentication handshake."""
         _LOGGER.debug("Handshake sending '%s'", PJREQ.decode())
-        await self._conn.write(PJREQ + (b"_" + self._auth if self._auth else b""))
+        # try to auth with the old method
+        await self._conn.write(PJREQ + self._auth)
 
         try:
-            data = await self._conn.read(len(PJACK))
-            _LOGGER.debug("Handshake received %s", data)
+            auth_resp = await self._conn.read(len(PJACK))
+            _LOGGER.debug("Handshake received %s", auth_resp)
 
-            if data == PJNAK:
-                _LOGGER.debug("Standard auth failed, trying SHA256 auth")
-                auth = (
-                    sha256(f"{self._auth.decode()}{AUTH_SALT}".encode())
-                    .hexdigest()
-                    .encode()
-                )
-                await self._conn.write(PJREQ + b"_" + auth)
-                data = await self._conn.read(len(PJACK))
-                if data == PJACK:
-                    self._auth = auth
+            if auth_resp == PJNAK:
+                _LOGGER.debug("Authentication failed. Trying new method")
+                # NZ800/900 etc use a new protocol
+                new_pwd_hash = self._password_to_sha256(self._auth)
+                await self._conn.write(PJREQ + new_pwd_hash)
+                auth_resp = await self._conn.read(len(PJACK))
 
-            if data == PJNAK:
-                raise JvcProjectorAuthError
+            if auth_resp == PJNAK:
+                raise JvcProjectorAuthError()
 
-            if data != PJACK:
+            if auth_resp != PJACK:
                 raise JvcProjectorCommandError("Handshake ack invalid")
 
         except asyncio.TimeoutError as err:
             raise JvcProjectorConnectError("Handshake ack timeout") from err
-
-        self._last = time()
 
     async def _send(self, cmd: JvcCommand) -> None:
         """Send command to device."""
