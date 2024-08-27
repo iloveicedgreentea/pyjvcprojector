@@ -42,7 +42,7 @@ def fixture_mock_connection(request):
         conn.connect.side_effect = connect
         conn.disconnect.side_effect = disconnect
         conn.read.side_effect = [PJOK, PJACK]
-        conn.readline.side_effect = [cc(HEAD_ACK, command.POWER)]
+        conn.readline.side_effect = [cc(HEAD_ACK, const.CMD_POWER)]
         conn.write.side_effect = lambda p: None
 
         yield conn
@@ -54,11 +54,11 @@ def fixture_mock_device(request):
     with patch("jvcprojector.projector.JvcDevice", autospec=True) as mock:
         fixture = {
             command.TEST: None,
-            command.MAC: MAC,
-            command.MODEL: MODEL,
-            command.POWER: const.ON,
-            command.INPUT: const.HDMI1,
-            command.SOURCE: const.SIGNAL,
+            const.CMD_LAN_SETUP_MAC_ADDRESS: MAC,
+            const.CMD_MODEL: MODEL,
+            const.CMD_POWER: const.ON,
+            const.CMD_INPUT: const.HDMI1,
+            const.CMD_SOURCE: const.SIGNAL,
         }
 
         if hasattr(request, "param"):

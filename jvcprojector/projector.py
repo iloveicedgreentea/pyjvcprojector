@@ -8,6 +8,7 @@ from .connection import resolve
 from .device import JvcDevice
 from .error import JvcProjectorConnectError, JvcProjectorError
 from . import const
+from typing import Any
 
 DEFAULT_PORT = 20554
 DEFAULT_TIMEOUT = 15.0
@@ -102,9 +103,9 @@ class JvcProjector:
         if not self._device:
             raise JvcProjectorError("Must call connect before getting info")
 
-        model = JvcCommand(command.MODEL, True)
-        mac = JvcCommand(command.MAC, True)
-        version = JvcCommand(command.VERSION, True)
+        model = JvcCommand(const.CMD_MODEL, True)
+        mac = JvcCommand(const.CMD_LAN_SETUP_MAC_ADDRESS, True)
+        version = JvcCommand(const.CMD_VERSION, True)
         await self._send([model, mac, version])
 
         if mac.response is None:
@@ -126,7 +127,6 @@ class JvcProjector:
             raise JvcProjectorError("Must call connect before getting state")
 
         # Add static values
-        # TODO: make these keys const so HA can reference them
         self._dict[const.KEY_MODEL] = self.process_model_code(self._model)
         self._dict[const.KEY_VERSION] = self.process_version(self._version)
         self._dict[const.KEY_MAC] = self.process_mac(self._mac)
@@ -140,19 +140,19 @@ class JvcProjector:
                 self._dict[key] = value
 
         # Always get power state
-        await send_and_update({const.KEY_POWER: command.POWER})
+        await send_and_update({const.KEY_POWER: const.CMD_POWER})
 
         # If power is on, get additional states
         if self._dict.get(const.KEY_POWER) == const.ON:
             await send_and_update(
                 {
-                    const.KEY_INPUT: command.INPUT,
-                    const.KEY_SOURCE: command.SOURCE,
-                    const.KEY_PICTURE_MODE: command.PICTURE_MODE,
-                    const.KEY_LOW_LATENCY: command.LOW_LATENCY,
-                    const.KEY_LASER_POWER: command.LASER_POWER,
-                    const.KEY_ANAMORPHIC: command.ANAMORPHIC,
-                    const.KEY_INSTALLATION_MODE: command.INSTALLATION_MODE,
+                    const.KEY_INPUT: const.CMD_INPUT,
+                    const.KEY_SOURCE: const.CMD_SOURCE,
+                    const.KEY_PICTURE_MODE: const.CMD_PICTURE_MODE,
+                    const.KEY_LOW_LATENCY: const.CMD_PICTURE_MODE_LOW_LATENCY,
+                    const.KEY_LASER_POWER: const.CMD_PICTURE_MODE_LASER_POWER,
+                    const.KEY_ANAMORPHIC: const.CMD_INSTALLATION_ANAMORPHIC,
+                    const.KEY_INSTALLATION_MODE: const.CMD_INSTALLATION_MODE,
                 }
             )
 
@@ -160,12 +160,12 @@ class JvcProjector:
             if self._dict.get(const.KEY_SOURCE) == const.SIGNAL:
                 await send_and_update(
                     {
-                        const.KEY_HDR: command.HDR,
-                        const.KEY_HDMI_INPUT_LEVEL: command.HDMI_INPUT_LEVEL,
-                        const.KEY_HDMI_COLOR_SPACE: command.HDMI_COLOR_SPACE,
-                        const.KEY_COLOR_PROFILE: command.COLOR_PROFILE,
-                        const.KEY_GRAPHICS_MODE: command.GRAPHICS_MODE,
-                        const.KEY_COLOR_SPACE: command.COLOR_SPACE,
+                        const.KEY_HDR: const.CMD_FUNCTION_HDR,
+                        const.KEY_HDMI_INPUT_LEVEL: const.CMD_INPUT_SIGNAL_HDMI_INPUT_LEVEL,
+                        const.KEY_HDMI_COLOR_SPACE: const.CMD_INPUT_SIGNAL_HDMI_COLOR_SPACE,
+                        const.KEY_COLOR_PROFILE: const.CMD_PICTURE_MODE_COLOR_PROFILE,
+                        const.KEY_GRAPHICS_MODE: const.CMD_PICTURE_MODE_GRAPHICS_MODE,
+                        const.KEY_COLOR_SPACE: const.CMD_FUNCTION_COLOR_SPACE,
                     }
                 )
 
@@ -176,12 +176,12 @@ class JvcProjector:
             ):
                 await send_and_update(
                     {
-                        const.KEY_ESHIFT: command.ESHIFT,
-                        const.KEY_CLEAR_MOTION_DRIVE: command.CLEAR_MOTION_DRIVE,
-                        const.KEY_MOTION_ENHANCE: command.MOTION_ENHANCE,
-                        const.KEY_LASER_VALUE: command.LASER_VALUE,
-                        const.KEY_LASER_TIME: command.LASER_TIME,
-                        const.KEY_LASER_DIMMING: command.LASER_DIMMING,
+                        const.KEY_ESHIFT: const.CMD_PICTURE_MODE_8K_ESHIFT,
+                        const.KEY_CLEAR_MOTION_DRIVE: const.CMD_PICTURE_MODE_CLEAR_MOTION_DRIVE,
+                        const.KEY_MOTION_ENHANCE: const.CMD_PICTURE_MODE_MOTION_ENHANCE,
+                        const.KEY_LASER_VALUE: const.CMD_PICTURE_MODE_LASER_VALUE,
+                        const.KEY_LASER_TIME: const.CMD_FUNCTION_LASER_TIME,
+                        const.KEY_LASER_DIMMING: const.CMD_LASER_DIMMING,
                     }
                 )
 
@@ -189,8 +189,8 @@ class JvcProjector:
             if self._dict.get("hdr") != const.HDR_CONTENT_SDR:
                 await send_and_update(
                     {
-                        const.KEY_HDR_PROCESSING: command.HDR_PROCESSING,
-                        const.KEY_HDR_CONTENT_TYPE: command.HDR_CONTENT_TYPE,
+                        const.KEY_HDR_PROCESSING: const.CMD_PICTURE_MODE_HDR_PROCESSING,
+                        const.KEY_HDR_CONTENT_TYPE: const.CMD_PICTURE_MODE_HDR_CONTENT_TYPE,
                     }
                 )
 
@@ -221,19 +221,19 @@ class JvcProjector:
 
     async def get_version(self) -> str | None:
         """Get device software version."""
-        return await self.ref(command.VERSION)
+        return await self.ref(const.CMD_VERSION)
 
     async def get_power(self) -> str | None:
         """Get power state."""
-        return await self.ref(command.POWER)
+        return await self.ref(const.CMD_POWER)
 
     async def get_input(self) -> str | None:
         """Get current input."""
-        return await self.ref(command.INPUT)
+        return await self.ref(const.CMD_INPUT)
 
     async def get_signal(self) -> str | None:
         """Get if has signal."""
-        return await self.ref(command.SOURCE)
+        return await self.ref(const.CMD_SOURCE)
 
     async def test(self) -> bool:
         """Run test command."""
@@ -243,15 +243,15 @@ class JvcProjector:
 
     async def power_on(self) -> None:
         """Run power on command."""
-        await self.op(f"{command.POWER}1")
+        await self.op(f"{const.CMD_POWER}1")
 
     async def power_off(self) -> None:
         """Run power off command."""
-        await self.op(f"{command.POWER}0")
+        await self.op(f"{const.CMD_POWER}0")
 
     async def remote(self, code: str) -> None:
         """Run remote code command."""
-        await self.op(f"{command.REMOTE}{code}")
+        await self.op(f"{const.CMD_REMOTE}{code}")
 
     async def op(self, code: str) -> None:
         """Send operation code."""
@@ -269,3 +269,50 @@ class JvcProjector:
         await self._device.send(cmds)
 
         return [cmd.response for cmd in cmds]
+
+    @staticmethod
+    def _invert_dict(d: dict[str, str]) -> dict[str, str]:
+        return {v: k for k, v in d.items()}
+
+    def _build_command_map(self) -> dict[str, dict[str, Any]]:
+        """Use the Formatters object in JvcCommand to build a command map to reduce code duplication."""
+        command_map = {}
+        for pattern, formatter in JvcCommand.formatters.items():
+            opcode = pattern.split("(")[0]  # Extract opcode from the f-string
+            if isinstance(formatter, dict):
+                command_map[opcode] = {
+                    "values": formatter,
+                    "inverse": {v: k for k, v in formatter.items()}
+                }
+            elif isinstance(formatter, list):
+                command_map[opcode] = {
+                    "values": {str(i): val for i, val in enumerate(formatter) if val is not None},
+                    "inverse": {val: str(i) for i, val in enumerate(formatter) if val is not None}
+                }
+            elif callable(formatter):
+                command_map[opcode] = {"values": "callable"}
+            else:
+                command_map[opcode] = {"values": formatter}
+        return command_map
+
+    async def send_command(self, cmd: str, val: str) -> None:
+        """Send a command using the new structure."""
+        command_map = self._build_command_map()
+        
+        if cmd not in command_map:
+            raise ValueError(f"Unknown command: {cmd}")
+
+        command_info = command_map[cmd]
+        
+        if command_info["values"] == "callable":
+            # For callable formatters, we'll just pass the value as is
+            value = val
+        elif "inverse" in command_info:
+            if val not in command_info["inverse"]:
+                raise ValueError(f"Invalid value for {cmd}: {val}")
+            value = command_info["inverse"][val]
+        else:
+            raise ValueError(f"Unsupported command type for {cmd}")
+
+        full_command = f"{cmd}{value}"
+        await self.op(full_command)

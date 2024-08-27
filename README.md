@@ -74,9 +74,9 @@ async def main():
     print(await jp.ref("PMPM"))
 
     #
-    # Example sending operation command (writes value to function)
+    # Example sending operation command
     #
-    # await jp.ref("PMPM01")  # Sets picture mode to Film
+    await jp.send_command(const.CMD_PICTURE_MODE_LASER_POWER, const.VAL_LASER_POWER[1])
 
     await jp.disconnect()
 ```

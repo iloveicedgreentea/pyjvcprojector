@@ -77,9 +77,9 @@ ANAMORPHIC_C: Final = "c"
 ANAMORPHIC_D: Final = "d"
 
 # Laser dimming modes
-LASER_DIMMING_AUTO1: Final = "auto1"
-LASER_DIMMING_AUTO2: Final = "auto2"
-LASER_DIMMING_AUTO3: Final = "auto3"
+AUTO1: Final = "auto1"
+AUTO2: Final = "auto2"
+AUTO3: Final = "auto3"
 
 # Aspect Ratio
 ASPECT_RATIO_ZOOM: Final = "zoom"
@@ -134,3 +134,266 @@ KEY_CLEAR_MOTION_DRIVE: Final = "clear_motion_drive"
 KEY_HDR_PROCESSING: Final = "hdr_processing"
 KEY_HDR_CONTENT_TYPE: Final = "hdr_content_type"
 KEY_LASER_DIMMING: Final = "laser_dimming"
+
+
+# Command constants
+CMD_POWER = "PW"
+CMD_INPUT = "IP"
+CMD_SOURCE = "SC"
+CMD_MODEL = "MD"
+CMD_REMOTE = "RC"
+CMD_VERSION = "IFSV"
+CMD_PICTURE_MODE = "PMPM"
+CMD_PICTURE_MODE_INTELLIGENT_APERTURE = "PMDI"
+CMD_LASER_DIMMING = "PMDC"
+CMD_PICTURE_MODE_COLOR_PROFILE = "PMPR"
+CMD_PICTURE_MODE_COLOR_TEMP = "PMCL"
+CMD_PICTURE_MODE_COLOR_CORRECTION = "PMCC"
+CMD_PICTURE_MODE_GAMMA_TABLE = "PMGT"
+CMD_PICTURE_MODE_COLOR_MANAGEMENT = "PMCB"
+CMD_PICTURE_MODE_LOW_LATENCY = "PMLL"
+CMD_PICTURE_MODE_8K_ESHIFT = "PMUS"
+CMD_PICTURE_MODE_CLEAR_MOTION_DRIVE = "PMCM"
+CMD_PICTURE_MODE_LASER_VALUE = "PMCV"
+CMD_PICTURE_MODE_MOTION_ENHANCE = "PMME"
+CMD_PICTURE_MODE_LASER_POWER = "PMLP"
+CMD_PICTURE_MODE_GRAPHICS_MODE = "PMGM"
+CMD_INPUT_SIGNAL_HDMI_INPUT_LEVEL = "ISIL"
+CMD_INPUT_SIGNAL_HDMI_COLOR_SPACE = "ISHS"
+CMD_INPUT_SIGNAL_HDMI_2D_3D = "IS3D"
+CMD_INPUT_SIGNAL_ASPECT = "ISAS"
+CMD_INPUT_SIGNAL_MASK = "ISMA"
+CMD_INSTALLATION_MODE = "INML"
+CMD_INSTALLATION_LENS_CONTROL = "INLC"
+CMD_INSTALLATION_LENS_IMAGE_PATTERN = "INIP"
+CMD_INSTALLATION_LENS_LOCK = "INLL"
+CMD_INSTALLATION_SCREEN_ADJUST = "INSC"
+CMD_INSTALLATION_STYLE = "INIS"
+CMD_INSTALLATION_ANAMORPHIC = "INVS"
+CMD_DISPLAY_BACK_COLOR = "DSBC"
+CMD_DISPLAY_MENU_POSITION = "DSMP"
+CMD_DISPLAY_SOURCE_DISPLAY = "DSSD"
+CMD_DISPLAY_LOGO = "DSLO"
+CMD_FUNCTION_TRIGGER = "FUTR"
+CMD_FUNCTION_OFF_TIMER = "FUOT"
+CMD_FUNCTION_ECO_MODE = "FUEM"
+CMD_FUNCTION_CONTROL4 = "FUCF"
+CMD_FUNCTION_INPUT = "IFIN"
+CMD_FUNCTION_SOURCE = "IFIS"
+CMD_FUNCTION_DEEP_COLOR = "IFDC"
+CMD_FUNCTION_COLOR_SPACE = "IFXV"
+CMD_FUNCTION_COLORIMETRY = "IFCM"
+CMD_FUNCTION_HDR = "IFHR"
+CMD_FUNCTION_LASER_TIME = "IFLT"
+CMD_PICTURE_MODE_HDR_LEVEL = "PMHL"
+CMD_PICTURE_MODE_HDR_PROCESSING = "PMHP"
+CMD_PICTURE_MODE_HDR_CONTENT_TYPE = "PMCT"
+CMD_PICTURE_MODE_THEATER_OPTIMIZER = "PMNM"
+CMD_PICTURE_MODE_THEATER_OPTIMIZER_LEVEL = "PMNL"
+CMD_PICTURE_MODE_THEATER_OPTIMIZER_PROCESSING = "PMNP"
+CMD_LAN_SETUP_DHCP = "LSDS"
+CMD_LAN_SETUP_MAC_ADDRESS = "LSMA"
+CMD_LAN_SETUP_IP_ADDRESS = "LSIP"
+
+# Value constants
+VAL_POWER = [STANDBY, ON, COOLING, WARMING, ERROR]
+VAL_INPUT = {
+    "0": "svideo",
+    "1": "video",
+    "2": "component",
+    "3": "pc",
+    "6": HDMI1,
+    "7": HDMI2,
+}
+VAL_SOURCE = [NOSIGNAL, SIGNAL]
+VAL_PICTURE_MODE = {
+    "00": "film",
+    "01": "cinema",
+    "02": "animation",
+    "03": "natural",
+    "04": "hdr10",
+    "06": "thx",
+    "0B": "frameadapt_hdr",
+    "0C": "user1",
+    "0D": "user2",
+    "0E": "user3",
+    "0F": "user4",
+    "10": "user5",
+    "11": "user6",
+    "14": "hlg",
+    "15": "hdr10+",
+    "16": "pana_pq",
+    "17": "filmmaker",
+    "18": "frameadapt_hdr2",
+    "19": "frameadapt_hdr3",
+}
+VAL_INTELLIGENT_APERTURE = [OFF, AUTO1, AUTO2]
+VAL_LASER_DIMMING = [OFF, AUTO1, AUTO2, AUTO3]
+VAL_COLOR_PROFILE = {
+    "00": OFF,
+    "01": "film1",
+    "02": "film2",
+    "03": "bt709",
+    "04": "cinema",
+    "05": "cinema2",
+    "06": "anime",
+    "07": "anime2",
+    "08": "video",
+    "09": "vivid",
+    "0A": "hdr",
+    "0B": "bt2020(wide)",
+    "0C": "3d",
+    "0D": "thx",
+    "0E": "custom1",
+    "0F": "custom2",
+    "10": "custom3",
+    "11": "custom4",
+    "12": "custom5",
+    "21": "dci",
+    "22": "custom6",
+    "24": "bt2020(normal)",
+    "25": "off(wide)",
+    "26": AUTO,
+}
+VAL_COLOR_TEMP = {
+    "00": "5500k",
+    "02": "6500k",
+    "04": "7500k",
+    "08": "9300k",
+    "09": "high",
+    "0A": "custom1",
+    "0B": "custom2",
+    "0C": "hdr10",
+    "0D": "xenon1",
+    "0E": "xenon2",
+    "14": "hlg",
+}
+VAL_COLOR_CORRECTION = {
+    "00": "5500k",
+    "02": "6500k",
+    "04": "7500k",
+    "08": "9300k",
+    "09": "high",
+    "0D": "xenon1",
+    "0E": "xenon2",
+}
+VAL_GAMMA_TABLE = {
+    "00": "2.2",
+    "01": "cinema1",
+    "02": "cinema2",
+    "04": "custom1",
+    "05": "custom2",
+    "06": "custom3",
+    "07": "hdr_hlg",
+    "08": "2.4",
+    "09": "2.6",
+    "0A": "film1",
+    "0B": "film2",
+    "0C": "hdr_pq",
+    "0D": "pana_pq",
+    "10": "thx",
+    "15": "hdr_auto",
+}
+VAL_TOGGLE = [OFF, "on"]
+VAL_CLEAR_MOTION_DRIVE = [OFF, None, None, LOW, HIGH, "inverse_telecine"]
+VAL_MOTION_ENHANCE = [OFF, LOW, HIGH]
+VAL_LASER_POWER = [LOW, HIGH, MEDIUM]
+VAL_GRAPHICS_MODE = ["standard", "high-res"]
+VAL_HDMI_INPUT_LEVEL = ["standard", "enhanced", "super_white", AUTO]
+VAL_HDMI_COLOR_SPACE = [AUTO, "ycbcr(4:4:4)", "ycbcr(4:2:2)", "rgb"]
+VAL_HDMI_2D_3D = ["2d", AUTO, None, "side_by_side", "top_bottom"]
+VAL_ASPECT = [None, None, "zoom", AUTO, "native"]
+VAL_MASK = [None, ON, OFF]
+VAL_INSTALLATION_MODE = [f"mode{i}" for i in range(1, 11)]
+VAL_LENS_CONTROL = ["stop", "start"]
+VAL_INSTALLATION_STYLE = ["front", "front_ceiling", "rear", "rear_ceiling"]
+VAL_ANAMORPHIC = [OFF, "a", "b", "c", "d"]
+VAL_BACK_COLOR = ["blue", "black"]
+VAL_MENU_POSITION = [
+    "left-top",
+    "right-top",
+    "center",
+    "left-bottom",
+    "right-bottom",
+    "left",
+    "right",
+]
+VAL_TRIGGER = [OFF, "power", "anamo"] + [f"ins{i}" for i in range(1, 11)]
+VAL_OFF_TIMER = [OFF, "1hour", "2hour", "3hour", "4hour"]
+VAL_FUNCTION_INPUT = [HDMI1, HDMI2]
+VAL_FUNCTION_SOURCE = {
+    "02": "480p",
+    "03": "576p",
+    "04": "720p50",
+    "05": "720p60",
+    "06": "1080i50",
+    "07": "1080i60",
+    "08": "1080p24",
+    "09": "1080p50",
+    "0A": "1080p60",
+    "0B": "nosignal",
+    "0C": "720p3d",
+    "0D": "1080i3d",
+    "0E": "1080p3d",
+    "0F": "outofrange",
+    "10": "4k(4096)60",
+    "11": "4k(4096)50",
+    "12": "4k(4096)30",
+    "13": "4k(4096)25",
+    "14": "4k(4096)24",
+    "15": "4k(3840)60",
+    "16": "4k(3840)50",
+    "17": "4k(3840)30",
+    "18": "4k(3840)25",
+    "19": "4k(3840)24",
+    "1C": "1080p25",
+    "1D": "1080p30",
+    "1E": "2048x1080p24",
+    "1F": "2048x1080p25",
+    "20": "2048x1080p30",
+    "21": "2048x1080p50",
+    "22": "2048x1080p60",
+    "23": "3840x2160p120",
+    "24": "4096x2160p120",
+    "25": "vga(640x480)",
+    "26": "svga(800x600)",
+    "27": "xga(1024x768)",
+    "28": "sxga(1280x1024)",
+    "29": "wxga(1280x768)",
+    "2A": "wxga+(1440x900)",
+    "2B": "wsxga+(1680x1050)",
+    "2C": "wuxga(1920x1200)",
+    "2D": "wxga(1280x800)",
+    "2E": "fwxga(1366x768)",
+    "2F": "wxga++(1600x900)",
+    "30": "uxga(1600x1200)",
+    "31": "qxga",
+    "32": "wqxga",
+}
+VAL_DEEP_COLOR = ["8bit", "10bit", "12bit"]
+VAL_COLOR_SPACE = ["rgb", "yuv"]
+VAL_COLORIMETRY = [
+    "nodata",
+    "bt601",
+    "bt709",
+    "xvycc601",
+    "xvycc709",
+    "sycc601",
+    "adobe_ycc601",
+    "adobe_rgb",
+    "bt2020(constant_luminance)",
+    "bt2020(non-constant_luminance)",
+    "srgb",
+]
+VAL_HDR = {
+    "0": "sdr",
+    "1": "hdr",
+    "2": "smpte_st_2084",
+    "3": "hybrid_log",
+    "F": "none",
+}
+VAL_HDR_LEVEL = [AUTO, "-2", "-1", "0", "1", "2"]
+VAL_HDR_PROCESSING = ["static", "frame", "scene"]
+VAL_HDR_CONTENT_TYPE = [AUTO, "sdr", None, "hdr10", "hlg"]
+VAL_THEATER_OPTIMIZER_LEVEL = ["reserved", LOW, MEDIUM, HIGH]
+VAL_THEATER_OPTIMIZER_PROCESSING = ["-", "start"]
