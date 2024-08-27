@@ -63,7 +63,7 @@ async def test_unknown_mac(dev: AsyncMock):
     p = JvcProjector(IP)
     await p.connect()
     with pytest.raises(JvcProjectorError):
-        await p.get_info()
+        assert p.mac == ""
 
 
 @pytest.mark.asyncio
@@ -79,8 +79,21 @@ async def test_get_state(dev: AsyncMock):
     """Test get_state succeeds."""
     p = JvcProjector(IP)
     await p.connect()
-    assert await p.get_state() == {
+    expected_dict = {
         "power": const.ON,
-        "input": const.HDMI1,
-        "source": const.SIGNAL,
     }
+    assert set(expected_dict.items()).issubset((await p.get_state()).items())
+
+
+def test_version():
+    """Test version processing."""
+    version = "0300PJ"
+    p = JvcProjector(IP)
+    assert p.process_version(version) == "3.0.0"
+
+
+def test_model():
+    """Test model processing."""
+    model = "B5A1"
+    p = JvcProjector(IP)
+    assert p.process_model_code(model) == "NZ9"

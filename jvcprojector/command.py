@@ -6,7 +6,7 @@ from collections.abc import Callable
 import logging
 import re
 from typing import Final
-
+import math
 from . import const
 
 _LOGGER = logging.getLogger(__name__)
@@ -33,6 +33,27 @@ SOURCE: Final = "SC"
 POWER: Final = "PW"
 INPUT: Final = "IP"
 REMOTE: Final = "RC"
+PICTURE_MODE: Final = "PMPM"
+COLOR_PROFILE: Final = "PMPR"
+COLOR_TEMP: Final = "PMCL"
+LOW_LATENCY: Final = "PMLL"
+ESHIFT: Final = "PMUS"
+CLEAR_MOTION_DRIVE: Final = "PMCM"
+MOTION_ENHANCE: Final = "PMME"
+LASER_POWER: Final = "PMLP"
+LASER_VALUE: Final = "PMCV"
+LASER_TIME: Final = "IFLT"
+GRAPHICS_MODE: Final = "PMGM"
+HDMI_INPUT_LEVEL: Final = "ISIL"
+HDMI_COLOR_SPACE: Final = "ISHS"
+INSTALLATION_MODE: Final = "INML"
+ANAMORPHIC: Final = "INVS"
+COLOR_SPACE: Final = "IFXV"
+COLORIMETRY: Final = "IFCM"
+HDR: Final = "IFHR"
+HDR_PROCESSING: Final = "PMHP"
+HDR_CONTENT_TYPE: Final = "PMCT"
+LASER_DIMMING: Final = "PMDC"
 
 AUTH_SALT: Final = "JVCKWPJ"
 
@@ -61,7 +82,14 @@ class JvcCommand:
             if m:
                 if isinstance(fmt, list):
                     try:
-                        return fmt[int(m[1], 16)]
+                        index = int(m[1], 16)
+                        if 0 <= index < len(fmt):
+                            return fmt[index]
+
+                        _LOGGER.warning(
+                            "Index %s out of range for command %s", index, self.code
+                        )
+                        return val
                     except ValueError:
                         msg = "response '%s' not int for cmd '%s'"
                         _LOGGER.warning(msg, val, self.code)
@@ -134,6 +162,8 @@ class JvcCommand:
         },
         # Picture Mode - Intelligent Lens Aperture
         "PMDI(.)": ["off", "auto1", "auto2"],
+        # Laser dimming modes
+        "PMDC(.)": ["off", "auto1", "auto2", "auto3"],
         # Picture Mode - Color Profile
         "PMPR(..)": {
             "00": "off",
@@ -207,10 +237,13 @@ class JvcCommand:
         "PM(?:CB|LL|US)(.)": ["off", "on"],
         # Picture Mode - Clear Motion Drive
         "PMCM(.)": ["off", None, None, "low", "high", "inverse_telecine"],
+        # Laser value 0-100
+        # jvc returns a weird scale
+        "PMCV(.+)": lambda r: math.floor(((int(r[1], 16) - 109) / 1.1) + 0.5),
         # Picture Mode - Motion Enhance
         "PMME(.)": ["off", "low", "high"],
-        # Picture Mode - Lamp Power
-        "PMLP(.)": ["normal", "high"],
+        # Picture Mode - Lamp/Laser Power '2' is medium, added with NZ models
+        "PMLP(.)": ["low", "high", "medium"],
         # Picture Mode - Graphics Mode
         "PMGM(.)": ["standard", "high-res"],
         # Input Signal - HDMI Input Level
@@ -223,6 +256,18 @@ class JvcCommand:
         "ISAS(.)": [None, None, "zoom", "auto", "native"],
         # Input Signal - Mask
         "ISMA(.)": [None, "on", "off"],
+        "INML(.)": [
+            "mode1",
+            "mode2",
+            "mode3",
+            "mode4",
+            "mode5",
+            "mode6",
+            "mode7",
+            "mode8",
+            "mode9",
+            "mode10",
+        ],
         # Installation - Lens Control
         "IN(?:FN|FF|ZT|ZW|SL|SR|SU|SD)(.)": ["stop", "start"],
         # Installation - Lens Image Pattern, Lens Lock, Screen Adjust
@@ -343,6 +388,7 @@ class JvcCommand:
             "3": "hybrid_log",
             "F": "none",
         },
+        "IFLT(.+)": lambda r: int(r[1], 16),
         # Picture Mode - HDR Level
         "PMHL(.)": ["auto", "-2", "-1", "0", "1", "2"],
         # Picture Mode - HDR Processing

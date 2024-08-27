@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import logging
-
-from . import command, const
+from . import command
 from .command import JvcCommand
 from .connection import resolve
 from .device import JvcDevice
 from .error import JvcProjectorConnectError, JvcProjectorError
-
-_LOGGER = logging.getLogger(__name__)
+from . import const
 
 DEFAULT_PORT = 20554
 DEFAULT_TIMEOUT = 15.0
@@ -38,6 +35,7 @@ class JvcProjector:
         self._model: str = ""
         self._mac: str = ""
         self._version: str = ""
+        self._dict: dict[str, str] = {}
 
     @property
     def ip(self) -> str:
@@ -101,34 +99,125 @@ class JvcProjector:
 
     async def get_info(self) -> dict[str, str]:
         """Get device info."""
-        assert self._device
+        if not self._device:
+            raise JvcProjectorError("Must call connect before getting info")
+
         model = JvcCommand(command.MODEL, True)
         mac = JvcCommand(command.MAC, True)
-        await self._send([model, mac])
+        version = JvcCommand(command.VERSION, True)
+        await self._send([model, mac, version])
 
         if mac.response is None:
-            raise JvcProjectorError("Mac address not available")
+            mac.response = "(unknown)"
 
         if model.response is None:
             model.response = "(unknown)"
 
+        # store to reference in state
         self._model = model.response
         self._mac = mac.response
+        self._version = version.response
 
-        return {"model": self._model, "mac": self._mac}
+        return {const.KEY_MODEL: self._model, const.KEY_MAC: self._mac}
 
     async def get_state(self) -> dict[str, str | None]:
         """Get device state."""
-        assert self._device
-        pwr = JvcCommand(command.POWER, True)
-        inp = JvcCommand(command.INPUT, True)
-        src = JvcCommand(command.SOURCE, True)
-        res = await self._send([pwr, inp, src])
-        return {
-            "power": res[0] or None,
-            "input": res[1] or const.NOSIGNAL,
-            "source": res[2] or const.NOSIGNAL,
-        }
+        if not self._device:
+            raise JvcProjectorError("Must call connect before getting state")
+
+        # Add static values
+        # TODO: make these keys const so HA can reference them
+        self._dict[const.KEY_MODEL] = self.process_model_code(self._model)
+        self._dict[const.KEY_VERSION] = self.process_version(self._version)
+        self._dict[const.KEY_MAC] = self.process_mac(self._mac)
+
+        async def send_and_update(commands: dict[str, str]) -> None:
+            """Send commands and update the dictionary."""
+            cmd_vals = [JvcCommand(cmd, True) for cmd in commands.values()]
+            res = await self._send(cmd_vals)
+            # discard the command values and zip the keys with the responses
+            for (key, _), value in zip(commands.items(), res):
+                self._dict[key] = value
+
+        # Always get power state
+        await send_and_update({const.KEY_POWER: command.POWER})
+
+        # If power is on, get additional states
+        if self._dict.get(const.KEY_POWER) == const.ON:
+            await send_and_update(
+                {
+                    const.KEY_INPUT: command.INPUT,
+                    const.KEY_SOURCE: command.SOURCE,
+                    const.KEY_PICTURE_MODE: command.PICTURE_MODE,
+                    const.KEY_LOW_LATENCY: command.LOW_LATENCY,
+                    const.KEY_LASER_POWER: command.LASER_POWER,
+                    const.KEY_ANAMORPHIC: command.ANAMORPHIC,
+                    const.KEY_INSTALLATION_MODE: command.INSTALLATION_MODE,
+                }
+            )
+
+            # Check if there's a signal before getting signal-dependent states
+            if self._dict.get(const.KEY_SOURCE) == const.SIGNAL:
+                await send_and_update(
+                    {
+                        const.KEY_HDR: command.HDR,
+                        const.KEY_HDMI_INPUT_LEVEL: command.HDMI_INPUT_LEVEL,
+                        const.KEY_HDMI_COLOR_SPACE: command.HDMI_COLOR_SPACE,
+                        const.KEY_COLOR_PROFILE: command.COLOR_PROFILE,
+                        const.KEY_GRAPHICS_MODE: command.GRAPHICS_MODE,
+                        const.KEY_COLOR_SPACE: command.COLOR_SPACE,
+                    }
+                )
+
+            # NX9 and NZ model specific commands
+            if (
+                "NZ" in self._dict[const.KEY_MODEL]
+                or "NX9" in self._dict[const.KEY_MODEL]
+            ):
+                await send_and_update(
+                    {
+                        const.KEY_ESHIFT: command.ESHIFT,
+                        const.KEY_CLEAR_MOTION_DRIVE: command.CLEAR_MOTION_DRIVE,
+                        const.KEY_MOTION_ENHANCE: command.MOTION_ENHANCE,
+                        const.KEY_LASER_VALUE: command.LASER_VALUE,
+                        const.KEY_LASER_TIME: command.LASER_TIME,
+                        const.KEY_LASER_DIMMING: command.LASER_DIMMING,
+                    }
+                )
+
+            # HDR-specific commands
+            if self._dict.get("hdr") != const.HDR_CONTENT_SDR:
+                await send_and_update(
+                    {
+                        const.KEY_HDR_PROCESSING: command.HDR_PROCESSING,
+                        const.KEY_HDR_CONTENT_TYPE: command.HDR_CONTENT_TYPE,
+                    }
+                )
+
+        return self._dict
+
+    def process_mac(self, mac: str) -> str:
+        """Process mac address."""
+        # skip every 2 characters and join with :
+        return ":".join(mac[i : i + 2] for i in range(0, len(mac), 2))
+
+    def process_model_code(self, model: str) -> str:
+        """Process model code."""
+        return const.MODEL_MAP.get(model[-4:], "Unsupported")
+
+    def process_version(self, version: str) -> str:
+        """Process version string."""
+        version = version.removesuffix("PJ")
+        version = version.zfill(4)
+
+        # Extract major, minor, and patch versions
+        major = str(
+            int(version[0:2])
+        )  # Remove leading zero and convert to int then back to str
+        minor = str(int(version[2]))
+        patch = str(int(version[3]))
+
+        return f"{major}.{minor}.{patch}"
 
     async def get_version(self) -> str | None:
         """Get device software version."""
