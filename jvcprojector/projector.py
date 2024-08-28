@@ -296,7 +296,7 @@ class JvcProjector:
         return command_map
 
     async def send_command(self, cmd: str, val: str) -> None:
-        """Send a command using the new structure."""
+        """Send a command to the projector."""
         command_map = self._build_command_map()
         
         if cmd not in command_map:

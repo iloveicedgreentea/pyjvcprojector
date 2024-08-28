@@ -54,12 +54,10 @@ class JvcDevice:
         self._keepalive: asyncio.Task | None = None
         self._last: float = 0.0
 
-    # TODO: try old handshake, if fails, try new one, then error
     def _password_to_sha256(self, password: bytes) -> bytes:
         """
         Convert a password to sha256 for new models
         """
-        # TODO: add new models
         val = f"{password.decode()}JVCKWPJ"
         return hashlib.sha256(val.encode()).hexdigest().encode()
 
