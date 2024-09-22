@@ -117,7 +117,7 @@ class JvcProjector:
 
         return {"model": self._model, "mac": self._mac}
 
-    async def get_state(self) -> dict[str, str]:
+    async def get_state(self) -> dict[str, str | None]:
         """Get device state."""
         assert self._device
         pwr = JvcCommand(command.POWER, True)

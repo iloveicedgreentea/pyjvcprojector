@@ -34,6 +34,8 @@ POWER: Final = "PW"
 INPUT: Final = "IP"
 REMOTE: Final = "RC"
 
+AUTH_SALT: Final = "JVCKWPJ"
+
 
 class JvcCommand:
     """Class for representing a JVC Projector command."""

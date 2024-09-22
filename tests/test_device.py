@@ -1,5 +1,6 @@
 """Tests for device module."""
 
+from hashlib import sha256
 from unittest.mock import AsyncMock, call
 
 import pytest
@@ -7,11 +8,13 @@ import pytest
 from jvcprojector import command, const
 from jvcprojector.command import JvcCommand
 from jvcprojector.device import (
+    AUTH_SALT,
     HEAD_ACK,
     HEAD_OP,
     HEAD_REF,
     HEAD_RES,
     PJACK,
+    PJNAK,
     PJNG,
     PJOK,
     PJREQ,
@@ -73,6 +76,20 @@ async def test_send_with_password10(conn: AsyncMock):
     await dev.disconnect()
     conn.write.assert_has_calls(
         [call(PJREQ + b"_passwd7890"), call(cc(HEAD_OP, f"{command.POWER}1"))]
+    )
+
+
+@pytest.mark.asyncio
+async def test_send_with_password_sha256(conn: AsyncMock):
+    """Test send with a projector requiring sha256 hashing."""
+    conn.read.side_effect = [PJOK, PJNAK, PJACK]
+    dev = JvcDevice(IP, PORT, TIMEOUT, "passwd7890")
+    cmd = JvcCommand(f"{command.POWER}1")
+    await dev.send([cmd])
+    await dev.disconnect()
+    auth = sha256(f"passwd7890{AUTH_SALT}".encode()).hexdigest().encode()
+    conn.write.assert_has_calls(
+        [call(PJREQ + b"_" + auth), call(cc(HEAD_OP, f"{command.POWER}1"))]
     )
 
 

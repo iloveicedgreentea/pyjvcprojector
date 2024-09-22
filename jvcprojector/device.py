@@ -5,10 +5,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import struct
+from hashlib import sha256
 from time import time
 
 from . import const
 from .command import (
+    AUTH_SALT,
     END,
     HEAD_ACK,
     HEAD_LEN,
@@ -45,7 +47,7 @@ class JvcDevice:
 
         self._auth = b""
         if password:
-            self._auth = b"_" + struct.pack("10s", password.encode())
+            self._auth = struct.pack("10s", password.encode())
 
         self._lock = asyncio.Lock()
         self._keepalive: asyncio.Task | None = None
@@ -138,20 +140,28 @@ class JvcDevice:
             raise JvcProjectorConnectError("Retries exceeded")
 
         _LOGGER.debug("Handshake sending '%s'", PJREQ.decode())
-        await self._conn.write(PJREQ + self._auth)
+        await self._conn.write(PJREQ + (b"_" + self._auth if self._auth else b""))
 
         try:
             data = await self._conn.read(len(PJACK))
+            _LOGGER.debug("Handshake received %s", data)
+
+            if data == PJNAK:
+                _LOGGER.debug("Standard auth failed, trying SHA256 auth")
+                auth = sha256(f"{self._auth.decode()}{AUTH_SALT}".encode()).hexdigest().encode()
+                await self._conn.write(PJREQ + b"_" + auth)
+                data = await self._conn.read(len(PJACK))
+                if data == PJACK:
+                    self._auth = auth
+
+            if data == PJNAK:
+                raise JvcProjectorAuthError()
+
+            if data != PJACK:
+                raise JvcProjectorCommandError("Handshake ack invalid")
+
         except asyncio.TimeoutError as err:
             raise JvcProjectorConnectError("Handshake ack timeout") from err
-
-        _LOGGER.debug("Handshake received %s", data)
-
-        if data == PJNAK:
-            raise JvcProjectorAuthError()
-
-        if data != PJACK:
-            raise JvcProjectorCommandError("Handshake ack invalid")
 
         self._last = time()
 

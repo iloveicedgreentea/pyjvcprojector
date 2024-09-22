@@ -6,6 +6,9 @@ https://pypi.org/project/pyjvcprojector/
 
 ## Features
 
+A full reference to the available commands is available from JVC here
+http://pro.jvc.com/pro/attributes/PRESENT/Manual/External%20Command%20Spec%20for%20D-ILA%20projector_V3.0.pdf.
+
 ### Convenience functions:
 * `JvcProjector::power_on()` turns on power.
 * `JvcProjector::power_off()` turns off power.
@@ -76,4 +79,10 @@ async def main():
     # await jp.ref("PMPM01")  # Sets picture mode to Film
 
     await jp.disconnect()
+```
+
+Password authentication is also supported for both older and newer models.
+
+```python
+JvcProjector("127.0.0.1", password="1234567890")
 ```

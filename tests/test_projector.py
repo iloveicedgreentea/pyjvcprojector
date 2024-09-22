@@ -1,6 +1,5 @@
 """Tests for projector module."""
 
-import hashlib
 from unittest.mock import AsyncMock
 
 import pytest
@@ -9,7 +8,7 @@ from jvcprojector import command, const
 from jvcprojector.error import JvcProjectorError
 from jvcprojector.projector import JvcProjector
 
-from . import IP, HOST, MAC, MODEL, PORT
+from . import HOST, IP, MAC, MODEL, PORT
 
 
 @pytest.mark.asyncio
