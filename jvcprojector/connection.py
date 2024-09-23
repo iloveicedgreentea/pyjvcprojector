@@ -70,7 +70,7 @@ async def resolve(host: str) -> str:
     try:
         res = await aiodns.DNSResolver().gethostbyname(host, socket.AF_INET)
         if len(res.addresses) < 1:
-            raise aiodns.error.DNSError("Unexpected zero length addresses response")
+            raise JvcProjectorConnectError("Unexpected zero length addresses response")
     except aiodns.error.DNSError as err:
         raise JvcProjectorConnectError(f"Failed to resolve host {host}") from err
 

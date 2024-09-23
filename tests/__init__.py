@@ -1,4 +1,4 @@
-"""pytest tests"""
+"""pytest tests."""
 
 from jvcprojector.device import END
 

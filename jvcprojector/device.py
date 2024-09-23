@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+from hashlib import sha256
 import logging
 import struct
-from hashlib import sha256
 from time import time
 
 from . import const
@@ -155,7 +155,7 @@ class JvcDevice:
                     self._auth = auth
 
             if data == PJNAK:
-                raise JvcProjectorAuthError()
+                raise JvcProjectorAuthError
 
             if data != PJACK:
                 raise JvcProjectorCommandError("Handshake ack invalid")

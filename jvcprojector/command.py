@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import logging
 import re
-from collections.abc import Callable
 from typing import Final
 
 from . import const
@@ -49,7 +49,7 @@ class JvcCommand:
 
     @property
     def response(self) -> str | None:
-        """Returns command response."""
+        """Return command response."""
         if not self.is_ref or self._response is None:
             return None
 
@@ -77,7 +77,7 @@ class JvcCommand:
                 elif callable(fmt):
                     try:
                         return fmt(m)
-                    except Exception as e:  # pylint: disable=broad-except
+                    except Exception as e:  # noqa: BLE001
                         msg = "response format failed with %s for '%s (%s)'"
                         _LOGGER.warning(msg, e, self.code, val)
                 break
@@ -86,15 +86,13 @@ class JvcCommand:
 
     @response.setter
     def response(self, data: str) -> None:
-        """Sets command response."""
+        """Set command response."""
         self._response = data
 
     @property
     def is_power(self) -> bool:
-        """Returns if command is a power command."""
+        """Return if command is a power command."""
         return self.code.startswith("PW")
-
-    # pylint: disable=line-too-long
 
     formatters: dict[str, list | dict | Callable] = {
         # Power

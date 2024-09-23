@@ -2,7 +2,7 @@
 
 
 class JvcProjectorError(Exception):
-    """Projector Error"""
+    """Projector Error."""
 
 
 class JvcProjectorConnectError(JvcProjectorError):
