@@ -148,7 +148,11 @@ class JvcDevice:
 
             if data == PJNAK:
                 _LOGGER.debug("Standard auth failed, trying SHA256 auth")
-                auth = sha256(f"{self._auth.decode()}{AUTH_SALT}".encode()).hexdigest().encode()
+                auth = (
+                    sha256(f"{self._auth.decode()}{AUTH_SALT}".encode())
+                    .hexdigest()
+                    .encode()
+                )
                 await self._conn.write(PJREQ + b"_" + auth)
                 data = await self._conn.read(len(PJACK))
                 if data == PJACK:
