@@ -83,11 +83,11 @@ async def test_send_with_password10(conn: AsyncMock):
 async def test_send_with_password_sha256(conn: AsyncMock):
     """Test send with a projector requiring sha256 hashing."""
     conn.read.side_effect = [PJOK, PJNAK, PJACK]
-    dev = JvcDevice(IP, PORT, TIMEOUT, "passwd7890")
+    dev = JvcDevice(IP, PORT, TIMEOUT, "passwd78901")
     cmd = JvcCommand(f"{command.POWER}1")
     await dev.send([cmd])
     await dev.disconnect()
-    auth = sha256(f"passwd7890{AUTH_SALT}".encode()).hexdigest().encode()
+    auth = sha256(f"passwd78901{AUTH_SALT}".encode()).hexdigest().encode()
     conn.write.assert_has_calls(
         [call(PJREQ + b"_" + auth), call(cc(HEAD_OP, f"{command.POWER}1"))]
     )
