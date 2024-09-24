@@ -47,7 +47,7 @@ class JvcDevice:
 
         self._auth = b""
         if password:
-            self._auth = struct.pack("10s", password.encode())
+            self._auth = struct.pack(f"{max(10, len(password))}s", password.encode())
 
         self._lock = asyncio.Lock()
         self._keepalive: asyncio.Task | None = None
