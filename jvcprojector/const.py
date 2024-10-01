@@ -69,6 +69,7 @@ HDR_CONTENT_SDR: Final = "sdr"
 HDR_CONTENT_HDR10: Final = "hdr10"
 HDR_CONTENT_HDR10PLUS: Final = "hdr10_plus"
 HDR_CONTENT_HLG: Final = "hlg"
+HDR_CONTENT_NONE: Final = "none"
 
 # Anamorphic modes
 ANAMORPHIC_A: Final = "a"

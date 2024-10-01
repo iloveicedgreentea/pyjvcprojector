@@ -186,7 +186,7 @@ class JvcProjector:
                 )
 
             # HDR-specific commands
-            if self._dict.get("hdr") != const.HDR_CONTENT_SDR:
+            if self._dict.get("hdr") != const.HDR_CONTENT_SDR or self._dict.get("hdr") != const.HDR_CONTENT_NONE:
                 await send_and_update(
                     {
                         const.KEY_HDR_PROCESSING: const.CMD_PICTURE_MODE_HDR_PROCESSING,
