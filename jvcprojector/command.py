@@ -57,14 +57,14 @@ class JvcCommand:
                         index = int(m[1], 16)
                         if 0 <= index < len(fmt):
                             return fmt[index]
-
-                        _LOGGER.warning(
-                            "Index %s out of range for command %s", index, self.code
-                        )
                         return val
                     except ValueError:
                         msg = "response '%s' not int for cmd '%s'"
                         _LOGGER.warning(msg, val, self.code)
+                    except IndexError:
+                        _LOGGER.warning(
+                            "Index %s out of range for command %s", index, self.code
+                        )
                     except KeyError:
                         msg = "response '%s' not mapped for cmd '%s'"
                         _LOGGER.warning(msg, val, self.code)
