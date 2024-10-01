@@ -106,47 +106,78 @@ class JvcDevice:
                     await self._disconnect()
 
     async def _connect(self) -> None:
-        """Connect to device and perform handshake."""
+        """Connect to device."""
         assert not self._conn.is_connected()
 
-        await self._rate_limit()
+        elapsed = time() - self._last
+        if elapsed < 0.75:
+            await asyncio.sleep(0.75 - elapsed)
 
-        MAX_RETRIES = 10
-        for retry in range(MAX_RETRIES):
+        retries = 0
+        while retries < 10:
             try:
                 _LOGGER.debug("Connecting to %s", self._conn.ip)
                 await self._conn.connect()
-
-                data = await self._conn.read(len(PJOK))
-                _LOGGER.debug("Handshake received %s", data)
-
-                if data == PJNG:
-                    _LOGGER.warning("Handshake retrying on busy")
-                    await asyncio.sleep(0.25 * (retry + 1))
-                    continue
-
-                if data != PJOK:
-                    raise JvcProjectorCommandError("Handshake init invalid")
-
-                await self._authenticate()
-                return
-
             except ConnectionRefusedError:
-                _LOGGER.debug(
-                    (
-                        "Retrying refused connection"
-                        if retry < 4
-                        else "Retrying refused connection"
-                    ),
-                    exc_info=True,
-                )
-                await asyncio.sleep(0.2 * (retry + 1))
-            except asyncio.TimeoutError as err:
-                raise JvcProjectorConnectError("Handshake init timeout") from err
-            except ConnectionError as err:
+                retries += 1
+                if retries == 5:
+                    _LOGGER.warning("Retrying refused connection")
+                else:
+                    _LOGGER.debug("Retrying refused connection")
+                await asyncio.sleep(0.2 * retries)
+                continue
+            except (asyncio.TimeoutError, ConnectionError) as err:
                 raise JvcProjectorConnectError from err
 
-        raise JvcProjectorConnectError("Retries exceeded")
+            try:
+                data = await self._conn.read(len(PJOK))
+            except asyncio.TimeoutError as err:
+                raise JvcProjectorConnectError("Handshake init timeout") from err
+
+            _LOGGER.debug("Handshake received %s", data)
+
+            if data == PJNG:
+                _LOGGER.warning("Handshake retrying on busy")
+                retries += 1
+                await asyncio.sleep(0.25 * retries)
+                continue
+
+            if data != PJOK:
+                raise JvcProjectorCommandError("Handshake init invalid")
+
+            break
+        else:
+            raise JvcProjectorConnectError("Retries exceeded")
+
+        _LOGGER.debug("Handshake sending '%s'", PJREQ.decode())
+        await self._conn.write(PJREQ + (b"_" + self._auth if self._auth else b""))
+
+        try:
+            data = await self._conn.read(len(PJACK))
+            _LOGGER.debug("Handshake received %s", data)
+
+            if data == PJNAK:
+                _LOGGER.debug("Standard auth failed, trying SHA256 auth")
+                auth = (
+                    sha256(f"{self._auth.decode()}{AUTH_SALT}".encode())
+                    .hexdigest()
+                    .encode()
+                )
+                await self._conn.write(PJREQ + b"_" + auth)
+                data = await self._conn.read(len(PJACK))
+                if data == PJACK:
+                    self._auth = auth
+
+            if data == PJNAK:
+                raise JvcProjectorAuthError
+
+            if data != PJACK:
+                raise JvcProjectorCommandError("Handshake ack invalid")
+
+        except asyncio.TimeoutError as err:
+            raise JvcProjectorConnectError("Handshake ack timeout") from err
+
+        self._last = time()
 
     async def _rate_limit(self):
         """Implement rate limiting for connections."""
@@ -154,32 +185,6 @@ class JvcDevice:
         if elapsed < 0.75:
             await asyncio.sleep(0.75 - elapsed)
         self._last = time()
-
-    async def _authenticate(self):
-        """Perform authentication handshake."""
-        _LOGGER.debug("Handshake sending '%s'", PJREQ.decode())
-        # try to auth with the old method
-        await self._conn.write(PJREQ + self._auth)
-
-        try:
-            auth_resp = await self._conn.read(len(PJACK))
-            _LOGGER.debug("Handshake received %s", auth_resp)
-
-            if auth_resp == PJNAK:
-                _LOGGER.debug("Authentication failed. Trying new method")
-                # NZ800/900 etc use a new protocol
-                new_pwd_hash = self._password_to_sha256(self._auth)
-                await self._conn.write(PJREQ + new_pwd_hash)
-                auth_resp = await self._conn.read(len(PJACK))
-
-            if auth_resp == PJNAK:
-                raise JvcProjectorAuthError()
-
-            if auth_resp != PJACK:
-                raise JvcProjectorCommandError("Handshake ack invalid")
-
-        except asyncio.TimeoutError as err:
-            raise JvcProjectorConnectError("Handshake ack timeout") from err
 
     async def _send(self, cmd: JvcCommand) -> None:
         """Send command to device."""
@@ -204,7 +209,7 @@ class JvcDevice:
 
         if not data.startswith(HEAD_ACK + code[0:2]):
             raise JvcProjectorCommandError(
-                f"Response ack invalid '{data!r}' for '{cmd.code}'"
+                f"Response ack invalid '{data!r}' for '{cmd.code} expected {HEAD_ACK + code[0:2]}'"
             )
 
         if cmd.is_ref:

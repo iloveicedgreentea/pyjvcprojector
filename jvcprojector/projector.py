@@ -76,6 +76,10 @@ class JvcProjector:
             raise JvcProjectorError("version address not initialized")
         return self._version
 
+    async def is_on(self) -> bool:
+        """Returns if device is fully on and ready."""
+        return await self.get_power() == const.ON
+
     async def connect(self, get_info: bool = False) -> None:
         """Connect to device."""
         if self._device:
@@ -104,9 +108,13 @@ class JvcProjector:
             raise JvcProjectorError("Must call connect before getting info")
 
         model = JvcCommand(const.CMD_MODEL, True)
-        mac = JvcCommand(const.CMD_LAN_SETUP_MAC_ADDRESS, True)
-        version = JvcCommand(const.CMD_VERSION, True)
-        await self._send([model, mac, version])
+        # ensure PJ is fully on first
+        if await self.is_on():
+            mac = JvcCommand(const.CMD_LAN_SETUP_MAC_ADDRESS, True)
+            version = JvcCommand(const.CMD_VERSION, True)
+            await self._send([model, mac, version])
+        else:
+            await self._send([model])
 
         if mac.response is None:
             mac.response = "(unknown)"
@@ -186,7 +194,10 @@ class JvcProjector:
                 )
 
             # HDR-specific commands
-            if self._dict.get("hdr") != const.HDR_CONTENT_SDR or self._dict.get("hdr") != const.HDR_CONTENT_NONE:
+            if (
+                self._dict.get("hdr") != const.HDR_CONTENT_SDR
+                or self._dict.get("hdr") != const.HDR_CONTENT_NONE
+            ):
                 await send_and_update(
                     {
                         const.KEY_HDR_PROCESSING: const.CMD_PICTURE_MODE_HDR_PROCESSING,
@@ -282,12 +293,20 @@ class JvcProjector:
             if isinstance(formatter, dict):
                 command_map[opcode] = {
                     "values": formatter,
-                    "inverse": {v: k for k, v in formatter.items()}
+                    "inverse": {v: k for k, v in formatter.items()},
                 }
             elif isinstance(formatter, list):
                 command_map[opcode] = {
-                    "values": {str(i): val for i, val in enumerate(formatter) if val is not None},
-                    "inverse": {val: str(i) for i, val in enumerate(formatter) if val is not None}
+                    "values": {
+                        str(i): val
+                        for i, val in enumerate(formatter)
+                        if val is not None
+                    },
+                    "inverse": {
+                        val: str(i)
+                        for i, val in enumerate(formatter)
+                        if val is not None
+                    },
                 }
             elif callable(formatter):
                 command_map[opcode] = {"values": "callable"}
@@ -298,12 +317,12 @@ class JvcProjector:
     async def send_command(self, cmd: str, val: str) -> None:
         """Send a command to the projector."""
         command_map = self._build_command_map()
-        
+
         if cmd not in command_map:
             raise ValueError(f"Unknown command: {cmd}")
 
         command_info = command_map[cmd]
-        
+
         if command_info["values"] == "callable":
             # For callable formatters, we'll just pass the value as is
             value = val

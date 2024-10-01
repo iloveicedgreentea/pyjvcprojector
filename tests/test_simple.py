@@ -25,10 +25,10 @@ async def test_connect():
     print("Projector info:")
     print(await jp.get_info())
 
-    if await jp.get_power() != const.ON:
+    if not await jp.is_on():
         await jp.power_on()
         print("Waiting for projector to warmup...")
-        while await jp.get_power() != const.ON:
+        while not await jp.is_on():
             await asyncio.sleep(3)
 
     await jp.send_command(const.CMD_PICTURE_MODE_LASER_POWER, const.VAL_LASER_POWER[1])

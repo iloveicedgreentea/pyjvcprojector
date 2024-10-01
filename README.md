@@ -13,6 +13,7 @@ http://pro.jvc.com/pro/attributes/PRESENT/Manual/External%20Command%20Spec%20for
 * `JvcProjector::power_on()` turns on power.
 * `JvcProjector::power_off()` turns off power.
 * `JvcProjector::get_power()` gets power state (_standby, on, cooling, warming, error_)
+* `JvcProjector::is_on()` returns True if the power is on and ready
 * `JvcProjector::get_input()` get current input (_hdmi1, hdmi2_).
 * `JvcProjector::get_signal()` get signal state (_signal, nosignal_).
 * `JvcProjector::get_state()` returns {_power, input, signal_}.
@@ -48,10 +49,10 @@ async def main():
     print("Projector info:")
     print(await jp.get_info())
 
-    if await jp.get_power() != const.ON:
+    if not await jp.is_on():
         await jp.power_on()
         print("Waiting for projector to warmup...")
-        while await jp.get_power() != const.ON:
+        while not await jp.is_on():
             await asyncio.sleep(3)
 
     print("Current state:")

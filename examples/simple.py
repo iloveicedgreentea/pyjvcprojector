@@ -14,10 +14,10 @@ async def main():
     print("Projector info:")
     print(await jp.get_info())
 
-    if await jp.get_power() != const.ON:
+    if not await jp.is_on():
         await jp.power_on()
         print("Waiting for projector to warmup...")
-        while await jp.get_power() != const.ON:
+        while not await jp.is_on():
             await asyncio.sleep(3)
 
     print("Current state:")
