@@ -116,7 +116,8 @@ class JvcProjector:
             await self._send([model, mac])
 
         if mac.response is None:
-            mac.response = "(unknown)"
+            # required for HA unique ID
+            raise JvcProjectorError("Mac address not available")
 
         if model.response is None:
             model.response = "(unknown)"
@@ -197,7 +198,8 @@ class JvcProjector:
 
             # HDR-specific commands
             if (
-                self._dict.get("hdr") not in [const.HDR_CONTENT_NONE, const.HDR_CONTENT_SDR]
+                self._dict.get("hdr")
+                not in [const.HDR_CONTENT_NONE, const.HDR_CONTENT_SDR]
             ) and self._dict.get(
                 const.KEY_SOURCE
             ) == const.SIGNAL:  # only get if there is a signal
