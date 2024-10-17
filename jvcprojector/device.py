@@ -54,13 +54,6 @@ class JvcDevice:
         self._keepalive: asyncio.Task | None = None
         self._last: float = 0.0
 
-    def _password_to_sha256(self, password: bytes) -> bytes:
-        """
-        Convert a password to sha256 for new models
-        """
-        val = f"{password.decode()}JVCKWPJ"
-        return hashlib.sha256(val.encode()).hexdigest().encode()
-
     async def send(self, cmds: list[JvcCommand]) -> None:
         """Send commands to device."""
         async with self._lock:
@@ -177,13 +170,6 @@ class JvcDevice:
         except asyncio.TimeoutError as err:
             raise JvcProjectorConnectError("Handshake ack timeout") from err
 
-        self._last = time()
-
-    async def _rate_limit(self):
-        """Implement rate limiting for connections."""
-        elapsed = time() - self._last
-        if elapsed < 0.75:
-            await asyncio.sleep(0.75 - elapsed)
         self._last = time()
 
     async def _send(self, cmd: JvcCommand) -> None:
