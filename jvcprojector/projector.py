@@ -197,8 +197,7 @@ class JvcProjector:
 
             # HDR-specific commands
             if (
-                self._dict.get("hdr") != const.HDR_CONTENT_SDR
-                or self._dict.get("hdr") != const.HDR_CONTENT_NONE
+                self._dict.get("hdr") not in [const.HDR_CONTENT_NONE, const.HDR_CONTENT_SDR]
             ) and self._dict.get(
                 const.KEY_SOURCE
             ) == const.SIGNAL:  # only get if there is a signal
