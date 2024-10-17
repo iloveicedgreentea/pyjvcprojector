@@ -7,7 +7,6 @@ from hashlib import sha256
 import logging
 import struct
 from time import time
-import hashlib
 
 from . import const
 from .command import (
