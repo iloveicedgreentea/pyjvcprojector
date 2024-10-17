@@ -307,5 +307,4 @@ class JvcProjector:
         else:
             raise ValueError(f"Unsupported command type for {cmd}")
 
-        full_command = f"{cmd}{value}"
-        await self.op(full_command)
+        await self.op(f"{cmd}{value}")
