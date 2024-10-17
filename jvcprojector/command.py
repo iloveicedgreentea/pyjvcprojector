@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 import logging
 import re
-from typing import Final
+from typing import Final, Any
 import math
 from . import const
 
@@ -61,13 +61,6 @@ class JvcCommand:
                     except ValueError:
                         msg = "response '%s' not int for cmd '%s'"
                         _LOGGER.warning(msg, val, self.code)
-                    except IndexError:
-                        _LOGGER.warning(
-                            "Index %s out of range for command %s", index, self.code
-                        )
-                    except KeyError:
-                        msg = "response '%s' not mapped for cmd '%s'"
-                        _LOGGER.warning(msg, val, self.code)
                 elif isinstance(fmt, dict):
                     try:
                         return fmt[m[1]]
@@ -93,6 +86,38 @@ class JvcCommand:
     def is_power(self) -> bool:
         """Return if command is a power command."""
         return self.code.startswith("PW")
+
+    @staticmethod
+    def _build_command_map(
+        formatters: dict[str, list | dict | Callable]
+    ) -> dict[str, dict[str, Any]]:
+        """Use the Formatters object in JvcCommand to build a command map to reduce code duplication."""
+        command_map = {}
+        for pattern, formatter in formatters.items():
+            opcode = pattern.split("(")[0]  # Extract opcode from the f-string
+            if isinstance(formatter, dict):
+                command_map[opcode] = {
+                    "values": formatter,
+                    "inverse": {v: k for k, v in formatter.items()},
+                }
+            elif isinstance(formatter, list):
+                command_map[opcode] = {
+                    "values": {
+                        str(i): val
+                        for i, val in enumerate(formatter)
+                        if val is not None
+                    },
+                    "inverse": {
+                        val: str(i)
+                        for i, val in enumerate(formatter)
+                        if val is not None
+                    },
+                }
+            elif callable(formatter):
+                command_map[opcode] = {"values": "callable"}
+            else:
+                command_map[opcode] = {"values": formatter}
+        return command_map
 
     formatters: dict[str, list | dict | Callable] = {
         f"{const.CMD_POWER}(.)": const.VAL_POWER,
@@ -155,3 +180,5 @@ class JvcCommand:
         ),
         f"{const.CMD_LAN_SETUP_IP_ADDRESS}(..)(..)(..)(..)": lambda r: f"{int(r[1], 16)}.{int(r[2], 16)}.{int(r[3], 16)}.{int(r[4], 16)}",
     }
+
+    command_map: dict[str, dict[str, Any]] = _build_command_map(formatters)

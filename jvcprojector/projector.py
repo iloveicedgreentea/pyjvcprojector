@@ -8,7 +8,6 @@ from .connection import resolve
 from .device import JvcDevice
 from .error import JvcProjectorConnectError, JvcProjectorError
 from . import const
-from typing import Any
 
 DEFAULT_PORT = 20554
 DEFAULT_TIMEOUT = 15.0
@@ -108,19 +107,22 @@ class JvcProjector:
             raise JvcProjectorError("Must call connect before getting info")
 
         model = JvcCommand(const.CMD_MODEL, True)
+        mac = JvcCommand(const.CMD_LAN_SETUP_MAC_ADDRESS, True)
         # ensure PJ is fully on first
         if await self.is_on():
-            mac = JvcCommand(const.CMD_LAN_SETUP_MAC_ADDRESS, True)
             version = JvcCommand(const.CMD_VERSION, True)
             await self._send([model, mac, version])
         else:
-            await self._send([model])
+            await self._send([model, mac])
 
         if mac.response is None:
             mac.response = "(unknown)"
 
         if model.response is None:
             model.response = "(unknown)"
+
+        if version.response is None:
+            version.response = "(unknown)"
 
         # store to reference in state
         self._model = model.response
@@ -197,7 +199,9 @@ class JvcProjector:
             if (
                 self._dict.get("hdr") != const.HDR_CONTENT_SDR
                 or self._dict.get("hdr") != const.HDR_CONTENT_NONE
-            ):
+            ) and self._dict.get(
+                const.KEY_SOURCE
+            ) == const.SIGNAL:  # only get if there is a signal
                 await send_and_update(
                     {
                         const.KEY_HDR_PROCESSING: const.CMD_PICTURE_MODE_HDR_PROCESSING,
@@ -285,38 +289,9 @@ class JvcProjector:
     def _invert_dict(d: dict[str, str]) -> dict[str, str]:
         return {v: k for k, v in d.items()}
 
-    def _build_command_map(self) -> dict[str, dict[str, Any]]:
-        """Use the Formatters object in JvcCommand to build a command map to reduce code duplication."""
-        command_map = {}
-        for pattern, formatter in JvcCommand.formatters.items():
-            opcode = pattern.split("(")[0]  # Extract opcode from the f-string
-            if isinstance(formatter, dict):
-                command_map[opcode] = {
-                    "values": formatter,
-                    "inverse": {v: k for k, v in formatter.items()},
-                }
-            elif isinstance(formatter, list):
-                command_map[opcode] = {
-                    "values": {
-                        str(i): val
-                        for i, val in enumerate(formatter)
-                        if val is not None
-                    },
-                    "inverse": {
-                        val: str(i)
-                        for i, val in enumerate(formatter)
-                        if val is not None
-                    },
-                }
-            elif callable(formatter):
-                command_map[opcode] = {"values": "callable"}
-            else:
-                command_map[opcode] = {"values": formatter}
-        return command_map
-
     async def send_command(self, cmd: str, val: str) -> None:
         """Send a command to the projector."""
-        command_map = self._build_command_map()
+        command_map = JvcCommand.command_map
 
         if cmd not in command_map:
             raise ValueError(f"Unknown command: {cmd}")

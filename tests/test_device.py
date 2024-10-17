@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, call
 
 import pytest
 
-from jvcprojector import command, const
+from jvcprojector import const
 from jvcprojector.command import JvcCommand
 from jvcprojector.device import (
     AUTH_SALT,
