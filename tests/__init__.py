@@ -7,8 +7,9 @@ HOST = "localhost"
 PORT = 12345
 TIMEOUT = 3.0
 MAC = "abcd1234"
-MODEL = "model123"
+MODEL = "A2B1"
 PASSWORD = "pass1234"
+VERSION = "0300PJ"
 
 
 def cc(hdr: bytes, cmd: str):

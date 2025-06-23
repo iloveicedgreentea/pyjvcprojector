@@ -57,7 +57,11 @@ class JvcDevice:
         """Send commands to device."""
         async with self._lock:
             # Treat status refreshes with special handling
-            is_refresh = len(cmds) > 1 and cmds[0].is_ref and cmds[0].is_power
+            # if any cmd is a ref, and the first cmd is a power cmd
+            is_refresh = (
+                any(cmd.is_ref for cmd in cmds) and len(cmds) > 1 and cmds[0].is_power
+            )
+            _LOGGER.debug("Sending %s", "refresh" if is_refresh else "commands")
 
             # Connection keepalive window for fast command repeats
             keepalive = True
@@ -79,9 +83,16 @@ class JvcDevice:
                 for cmd in cmds:
                     await self._send(cmd)
                     # Throttle since some projectors dont like back to back commands
-                    await asyncio.sleep(0.5)
+                    # tested that as low as 0.1 is okay
+                    # however, it IS possible to lock up even NZ models
+                    await asyncio.sleep(0.2)
                     # If device is not powered on, skip remaining commands
+                    # mac cannot be is_refresh here and first command must be pw if its a refresh
                     if is_refresh and cmds[0].response != const.ON:
+                        _LOGGER.debug(
+                            "Skipping commands due to power off which are %s",
+                            [c.code for c in cmds],
+                        )
                         break
             except Exception:
                 keepalive = False
@@ -192,7 +203,7 @@ class JvcDevice:
 
         if not data.startswith(HEAD_ACK + code[0:2]):
             raise JvcProjectorCommandError(
-                f"Response ack invalid '{data!r}' for '{cmd.code}'"
+                f"Response ack invalid '{data!r}' for '{cmd.code}' expected '{HEAD_ACK + code[0:2]!r}'"
             )
 
         if cmd.is_ref:

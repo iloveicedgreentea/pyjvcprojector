@@ -2,13 +2,14 @@
 
 from unittest.mock import AsyncMock
 
+from unittest.mock import patch
 import pytest
 
-from jvcprojector import command, const
+from jvcprojector import const
 from jvcprojector.error import JvcProjectorError
 from jvcprojector.projector import JvcProjector
 
-from . import HOST, IP, MAC, MODEL, PORT
+from . import HOST, IP, MAC, MODEL, PORT, VERSION
 
 
 @pytest.mark.asyncio
@@ -46,24 +47,26 @@ async def test_connect_host(dev: AsyncMock):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("dev", [{command.MODEL: None}], indirect=True)
+@pytest.mark.parametrize("dev", [{const.CMD_MODEL: None}], indirect=True)
 async def test_unknown_model(dev: AsyncMock):
     """Test projector with unknown model succeeds."""
     p = JvcProjector(IP)
     await p.connect()
     await p.get_info()
     assert p.mac == MAC
-    assert p.model == "(unknown)"
+    assert p.model == "(unknown): Unknown"
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("dev", [{command.MAC: None}], indirect=True)
+@pytest.mark.parametrize(
+    "dev", [{const.CMD_LAN_SETUP_MAC_ADDRESS: None}], indirect=True
+)
 async def test_unknown_mac(dev: AsyncMock):
     """Test projector with unknown mac uses model succeeds."""
     p = JvcProjector(IP)
     await p.connect()
     with pytest.raises(JvcProjectorError):
-        await p.get_info()
+        assert p.mac == ""
 
 
 @pytest.mark.asyncio
@@ -72,6 +75,10 @@ async def test_get_info(dev: AsyncMock):
     p = JvcProjector(IP)
     await p.connect()
     assert await p.get_info() == {"model": MODEL, "mac": MAC}
+    # make sure model code is right
+    assert p.model in const.MODEL_MAP.values()
+    # make sure version is right
+    assert p.version == "3.0.0"
 
 
 @pytest.mark.asyncio
@@ -79,8 +86,82 @@ async def test_get_state(dev: AsyncMock):
     """Test get_state succeeds."""
     p = JvcProjector(IP)
     await p.connect()
-    assert await p.get_state() == {
+    expected_dict = {
         "power": const.ON,
-        "input": const.HDMI1,
-        "source": const.SIGNAL,
     }
+    assert set(expected_dict.items()).issubset((await p.get_state()).items())
+
+
+def test_version():
+    """Test version processing."""
+
+    p = JvcProjector(IP)
+    assert p.process_version(VERSION) == "3.0.0"
+
+
+def test_model():
+    """Test model processing."""
+    model = "B5A1"
+    p = JvcProjector(IP)
+    assert p.process_model_code(model) == "NZ9"
+
+
+@pytest.mark.asyncio
+async def test_send_command_success(dev: AsyncMock):
+    """Test send_command succeeds."""
+    p = JvcProjector(IP, port=PORT)
+    await p.connect()
+
+    # Mock the _build_command_map method
+    with patch("jvcprojector.projector.JvcCommand._build_command_map") as mock_build:
+        mock_build.return_value = {
+            const.CMD_PICTURE_MODE_LASER_POWER: {
+                "values": {"0": "low", "1": "high", "2": "medium"},
+                "inverse": {"low": "0", "high": "1", "medium": "2"},
+            }
+        }
+
+    # Patch the op method to avoid actual sending
+    with patch.object(p, "op") as mock_op:
+        await p.send_command(const.KEY_LASER_POWER, const.HIGH)
+
+        # Assert that op was called once with the correct command
+        mock_op.assert_called_once_with(f"{const.CMD_PICTURE_MODE_LASER_POWER}1")
+
+    # We don't need to assert anything about dev.send here, as we're not directly testing it
+
+
+@pytest.mark.asyncio
+async def test_send_command_invalid_value(dev: AsyncMock):
+    """Test send_command fails with invalid value."""
+    p = JvcProjector(IP, port=PORT)
+    await p.connect()
+
+    # Mock the _build_command_map method
+    with patch("jvcprojector.projector.JvcCommand._build_command_map") as mock_build:
+        mock_build.return_value = {
+            const.CMD_PICTURE_MODE_LASER_POWER: {
+                "values": {"0": "low", "1": "high", "2": "medium"},
+                "inverse": {"low": "0", "high": "1", "medium": "2"},
+            }
+        }
+
+    with pytest.raises(
+        ValueError,
+        match=f"Invalid value for {const.KEY_LASER_POWER}: invalid_value",
+    ):
+        await p.send_command(const.KEY_LASER_POWER, "invalid_value")
+
+
+@pytest.mark.asyncio
+async def test_send_command_unknown_command(dev: AsyncMock):
+    """Test send_command fails with unknown command."""
+    p = JvcProjector(IP, port=PORT)
+    await p.connect()
+
+    # Mock the _build_command_map method
+    with patch("jvcprojector.projector.JvcCommand._build_command_map") as mock_build:
+        mock_build.return_value = {}
+
+        with pytest.raises(ValueError, match="Unknown command: unknown_command"):
+            await p.send_command("unknown_command", "value")

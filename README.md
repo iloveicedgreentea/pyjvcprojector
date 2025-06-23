@@ -4,20 +4,30 @@ A python library for controlling a JVC Projector over a network connection.
 
 https://pypi.org/project/pyjvcprojector/
 
+Forked from https://github.com/SteveEasley/pyjvcprojector
+
 ## Features
 
 A full reference to the available commands is available from JVC here
 http://pro.jvc.com/pro/attributes/PRESENT/Manual/External%20Command%20Spec%20for%20D-ILA%20projector_V3.0.pdf.
 
+### Commands
+* `JvcCommandHelpers.get_available_commands()` return an object containing all available commands.
+* `JvcCommandHelpers.get_command_help("picture_mode")` return human readable help for a given command.
+
 ### Convenience functions:
 * `JvcProjector::power_on()` turns on power.
 * `JvcProjector::power_off()` turns off power.
 * `JvcProjector::get_power()` gets power state (_standby, on, cooling, warming, error_)
+* `JvcProjector::is_on()` returns True if the power is on and ready
 * `JvcProjector::get_input()` get current input (_hdmi1, hdmi2_).
 * `JvcProjector::get_signal()` get signal state (_signal, nosignal_).
 * `JvcProjector::get_state()` returns {_power, input, signal_}.
 * `JvcProjector::get_info()` returns {_model, mac address_}.
 
+### Send supported commands
+* `JvcProjector::send_command(cmd, val)` where cmd is a top level key from `JvcCommandHelpers.get_available_commands()` such as `laser_power` and val is a valid option found in the `values` key. For example, `clear_motion_drive, low`.
+ 
 ### Send remote control codes
 A wrapper for calling `JvcProjector::op(f"RC{code}")`
 * `JvcProjector::remote(code)` sends remote control command.
@@ -48,10 +58,10 @@ async def main():
     print("Projector info:")
     print(await jp.get_info())
 
-    if await jp.get_power() != const.ON:
+    if not await jp.is_on():
         await jp.power_on()
         print("Waiting for projector to warmup...")
-        while await jp.get_power() != const.ON:
+        while not await jp.is_on():
             await asyncio.sleep(3)
 
     print("Current state:")
@@ -74,9 +84,9 @@ async def main():
     print(await jp.ref("PMPM"))
 
     #
-    # Example sending operation command (writes value to function)
+    # Example sending operation command
     #
-    # await jp.ref("PMPM01")  # Sets picture mode to Film
+    await jp.send_command(const.CMD_PICTURE_MODE_LASER_POWER, const.VAL_LASER_POWER[1])
 
     await jp.disconnect()
 ```
