@@ -337,13 +337,15 @@ class JvcProjector:
         command_info = JvcCommand.command_map[raw_cmd]
 
         # transform human values to PJ values
+        # Start by replacing spaces with underscores to restore the original value.
+        unformatted_val = val.replace(" ", "_")
         if command_info["values"] == "callable":
             # For callable formatters, we'll just pass the value as is
-            value = val
+            value = unformatted_val
         elif "inverse" in command_info:
-            if val not in command_info["inverse"]:
-                raise ValueError(f"Invalid value for {cmd}: {val}")
-            value = command_info["inverse"][val]
+            if unformatted_val not in command_info["inverse"]:
+                raise ValueError(f"Invalid value for {cmd}: {unformatted_val}")
+            value = command_info["inverse"][unformatted_val]
         else:
             raise ValueError(f"Unsupported command type for {cmd}")
 
