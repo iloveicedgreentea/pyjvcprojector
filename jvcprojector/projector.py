@@ -213,6 +213,16 @@ class JvcProjector:
                     }
                 )
 
+            # NX5 supports CLEAR_MOTION_DRIVE setting
+            if (
+                "NX5" in self._dict[const.KEY_MODEL]
+            ):
+                await send_and_update(
+                    {
+                        const.KEY_CLEAR_MOTION_DRIVE: const.CMD_PICTURE_MODE_CLEAR_MOTION_DRIVE,
+                    }
+                )
+
             # HDR-specific commands
             if (
                 self._dict.get("hdr")
