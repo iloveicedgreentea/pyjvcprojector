@@ -85,7 +85,6 @@ select = [
     "S317", # suspicious-xml-sax-usage
     "S318", # suspicious-xml-mini-dom-usage
     "S319", # suspicious-xml-pull-dom-usage
-    "S320", # suspicious-xmle-tree-usage
     "S601", # paramiko-call
     "S602", # subprocess-popen-with-shell-equals-true
     "S604", # call-with-shell-equals-true
@@ -170,13 +169,13 @@ max-complexity = 25
 [tool.tox]
 legacy_tox_ini = """
     [tox]
-    envlist = py311,py312
+    envlist = py310,py314
     isolated_build = True
 
     [testenv]
     deps =
-        pytest
-        pytest-asyncio
+        pytest==9.0.3
+        pytest-asyncio==1.4.0
     commands =
         pytest
 """

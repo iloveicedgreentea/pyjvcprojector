@@ -2,4 +2,4 @@
 
 # ruff: noqa: F401
 
-__version__ = "1.1.7"
+__version__ = "1.2.0rc1"
