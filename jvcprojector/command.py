@@ -33,10 +33,11 @@ AUTH_SALT: Final = "JVCKWPJ"
 class JvcCommand:
     """Class for representing a JVC Projector command."""
 
-    def __init__(self, code: str, is_ref=False):
+    def __init__(self, code: str, is_ref=False, *, model: str | None = None):
         """Initialize class."""
         self.code = code
         self.is_ref = is_ref
+        self.model = model
         self.ack = False
         self._response: str | None = None
 
@@ -45,6 +46,14 @@ class JvcCommand:
         """Return command response."""
         if not self.is_ref or self._response is None:
             return None
+
+        if (
+            self.model in const.MODERN_MODELS
+            and self.code in const.MODERN_COMMAND_VALUES
+        ):
+            return const.MODERN_COMMAND_VALUES[self.code].get(
+                self._response, self._response
+            )
 
         res = self.code + self._response
         val: str = res[len(self.code) :]
@@ -92,7 +101,7 @@ class JvcCommand:
         formatters: dict[str, list | dict | Callable],
     ) -> dict[str, dict[str, Any]]:
         """Use the Formatters object in JvcCommand to build a command map to reduce code duplication."""
-        command_map = {}
+        command_map: dict[str, dict[str, Any]] = {}
         for pattern, formatter in formatters.items():
             opcode = pattern.split("(")[0]  # Extract opcode from the f-string
             if isinstance(formatter, dict):
@@ -103,18 +112,19 @@ class JvcCommand:
             elif isinstance(formatter, list):
                 command_map[opcode] = {
                     "values": {
-                        str(i): val
+                        f"{i:X}": val
                         for i, val in enumerate(formatter)
                         if val is not None
                     },
                     "inverse": {
-                        val: str(i)
+                        val: f"{i:X}"
                         for i, val in enumerate(formatter)
                         if val is not None
                     },
                 }
             elif callable(formatter):
-                command_map[opcode] = {"values": {"callable": "callable"}}
+                # A response decoder does not describe a writable range.
+                command_map[opcode] = {"values": "callable"}
             else:
                 command_map[opcode] = {"values": formatter}
         return command_map
@@ -147,7 +157,6 @@ class JvcCommand:
         f"{const.CMD_INPUT_SIGNAL_ASPECT}(.)": const.VAL_ASPECT,
         f"{const.CMD_INPUT_SIGNAL_MASK}(.)": const.VAL_MASK,
         f"{const.CMD_INSTALLATION_MODE}(.)": const.VAL_INSTALLATION_MODE,
-        f"{const.CMD_INSTALLATION_LENS_CONTROL}(.)": const.VAL_LENS_CONTROL,
         f"{const.CMD_INSTALLATION_LENS_IMAGE_PATTERN}(.)": const.VAL_TOGGLE,
         f"{const.CMD_INSTALLATION_LENS_LOCK}(.)": const.VAL_TOGGLE,
         f"{const.CMD_INSTALLATION_SCREEN_ADJUST}(.)": const.VAL_TOGGLE,
@@ -174,6 +183,11 @@ class JvcCommand:
         f"{const.CMD_PICTURE_MODE_THEATER_OPTIMIZER}(.)": const.VAL_TOGGLE,
         f"{const.CMD_PICTURE_MODE_THEATER_OPTIMIZER_LEVEL}(.)": const.VAL_THEATER_OPTIMIZER_LEVEL,
         f"{const.CMD_PICTURE_MODE_THEATER_OPTIMIZER_PROCESSING}(.)": const.VAL_THEATER_OPTIMIZER_PROCESSING,
+        f"{const.CMD_PICTURE_MODE_DEEP_BLACK}(.)": const.VAL_TOGGLE,
+        f"{const.CMD_PICTURE_MODE_HIGHLIGHT_COLOR}(.)": const.VAL_HIGHLIGHT_COLOR,
+        f"{const.CMD_PICTURE_MODE_SMOOTHER}(....)": const.VAL_SMOOTHER,
+        f"{const.CMD_INPUT_SIGNAL_ALLM}(.)": const.VAL_TOGGLE,
+        f"{const.CMD_INPUT_SIGNAL_FILMMAKER_AUTO}(.)": const.VAL_FILMMAKER_AUTO,
         f"{const.CMD_LAN_SETUP_DHCP}(.)": const.VAL_TOGGLE,
         f"{const.CMD_LAN_SETUP_MAC_ADDRESS}(.+)": lambda r: re.sub(
             r"-+", "-", r[1].replace(" ", "-")
@@ -204,6 +218,12 @@ class JvcCommandHelpers:
         ],  # Can only send standby/on, even though we might receive other states
         "source": None,  # Read-only, can't send values
         "laser_time": None,  # Read-only, can't send values
+        "hdr_processing": ["static", "frame", "scene"],  # HDR10+ is reference-only.
+        "graphics_mode": [
+            "standard",
+            "high-res",
+            "high-res2",
+        ],  # Off is reference-only.
     }
 
     @staticmethod
@@ -311,17 +331,20 @@ class JvcCommandHelpers:
             }
 
             # Handle different value types
-            if values == "callable":
-                command_info["values"] = '["0-100"]'
-                command_info["type"] = "range"
+            if pj_cmd.startswith("IF") or values == "callable":
+                command_info["values"] = ""
+                command_info["type"] = "read_only"
             elif isinstance(values, (list, dict)):
                 command_values = cls.get_command_values(human_cmd, values)
                 if command_values is None:
                     command_info["values"] = ""
                     command_info["type"] = "read_only"
                 else:
+                    # Keep the quoted-string metadata shape for compatibility,
+                    # but expose the actual API names (including underscores).
+                    allowed = cls.COMMAND_VALUE_OVERRIDES.get(human_cmd)
                     command_info["values"] = ", ".join(
-                        f'"{val}"' for val in command_values
+                        f'"{val}"' for val in (allowed or command_data["inverse"])
                     )
                     command_info["type"] = "enum"
             else:
@@ -361,6 +384,9 @@ class JvcCommandHelpers:
             help_text.append("Accepts values: 0-100")
         elif cmd_info["values"]:
             help_text.append("Available values:")
-            help_text.extend(f"  - {value}" for value in cmd_info["values"])
+            help_text.extend(
+                f"  - {value.strip().strip(chr(34))}"
+                for value in cmd_info["values"].split(",")
+            )
 
         return "\n".join(help_text)

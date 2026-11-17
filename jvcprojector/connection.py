@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 import socket
-
-import aiodns
 
 from .error import JvcProjectorConnectError
 
@@ -44,34 +43,51 @@ class JvcConnection:
     async def read(self, n: int) -> bytes:
         """Read n bytes from device."""
         assert self._reader
-        return await asyncio.wait_for(self._reader.read(n), timeout=self._timeout)
+        return await asyncio.wait_for(
+            self._reader.readexactly(n), timeout=self._timeout
+        )
 
-    async def readline(self) -> bytes:
-        """Read all bytes up to newline from device."""
+    async def readline(self, timeout: float | None = None) -> bytes:
+        """Read all bytes up to newline from device.
+
+        Args:
+            timeout: Optional timeout override. Uses default if not specified.
+
+        """
         assert self._reader
-        return await asyncio.wait_for(self._reader.readline(), timeout=self._timeout)
+        return await asyncio.wait_for(
+            self._reader.readline(),
+            timeout=self._timeout if timeout is None else timeout,
+        )
 
     async def write(self, data: bytes) -> None:
         """Write data to device."""
         assert self._writer
         self._writer.write(data)
-        await self._writer.drain()
+        await asyncio.wait_for(self._writer.drain(), timeout=self._timeout)
 
     async def disconnect(self) -> None:
         """Disconnect from device."""
-        if self._writer:
-            self._writer.close()
+        writer = self._writer
         self._writer = None
         self._reader = None
+        if writer:
+            writer.close()
+            # Closing an already broken connection must not hide the real error.
+            with suppress(asyncio.TimeoutError, OSError):
+                await asyncio.wait_for(writer.wait_closed(), timeout=self._timeout)
 
 
 async def resolve(host: str) -> str:
-    """Resolve hostname to ip address."""
+    """Resolve a hostname to its first IPv4 address using the system resolver."""
     try:
-        res = await aiodns.DNSResolver().gethostbyname(host, socket.AF_INET)
-        if len(res.addresses) < 1:
-            raise JvcProjectorConnectError("Unexpected zero length addresses response")
-    except aiodns.error.DNSError as err:
+        addresses = await asyncio.get_running_loop().getaddrinfo(
+            host, None, family=socket.AF_INET, type=socket.SOCK_STREAM
+        )
+    except OSError as err:
         raise JvcProjectorConnectError(f"Failed to resolve host {host}") from err
 
-    return res.addresses[0]
+    for family, _socktype, _protocol, _canonical, address in addresses:
+        if family == socket.AF_INET:
+            return address[0]
+    raise JvcProjectorConnectError(f"No IPv4 addresses returned for host {host}")

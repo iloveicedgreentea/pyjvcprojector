@@ -53,6 +53,19 @@ REMOTE_3D_FORMAT: Final = "73D6"
 REMOTE_PIC_ADJ: Final = "7372"
 REMOTE_NATURAL: Final = "736A"
 REMOTE_CINEMA: Final = "7368"
+REMOTE_HIDE_ON: Final = "73D0"
+REMOTE_HIDE_OFF: Final = "73D1"
+REMOTE_MODE_4: Final = "73E5"
+REMOTE_MODE_5: Final = "73E6"
+REMOTE_MODE_6: Final = "73E7"
+REMOTE_MODE_7: Final = "73E8"
+REMOTE_MODE_8: Final = "73E9"
+REMOTE_MODE_9: Final = "73EA"
+REMOTE_MODE_10: Final = "73EB"
+REMOTE_HDR10: Final = "73ED"
+REMOTE_HDR10_PLUS: Final = "73F9"
+REMOTE_HLG: Final = "73E1"
+REMOTE_FILMMAKER: Final = "73FB"
 
 # HDR Processing modes
 HDR_10PLUS: Final = "hdr10_plus"
@@ -83,6 +96,8 @@ ASPECT_RATIO_ZOOM: Final = "zoom"
 ASPECT_RATIO_NATIVE: Final = "native"
 
 MODEL_MAP = {
+    "B8A1": "NZ900",
+    "B8A2": "NZ800",
     "B5A1": "NZ9",
     "B5A2": "NZ8",
     "B5A3": "NZ7",
@@ -130,6 +145,13 @@ KEY_CLEAR_MOTION_DRIVE: Final = "clear_motion_drive"
 KEY_HDR_PROCESSING: Final = "hdr_processing"
 KEY_HDR_CONTENT_TYPE: Final = "hdr_content_type"
 KEY_RESOLUTION: Final = "resolution"
+KEY_ALLM: Final = "allm"
+KEY_DEEP_BLACK: Final = "deep_black"
+KEY_FILMMAKER_AUTO: Final = "filmmaker_auto"
+KEY_DEEP_COLOR: Final = "deep_color"
+KEY_COLORIMETRY: Final = "colorimetry"
+KEY_HIGHLIGHT_COLOR: Final = "highlight_color"
+KEY_SMOOTHER: Final = "smoother"
 
 
 # Command constants
@@ -160,7 +182,33 @@ CMD_INPUT_SIGNAL_HDMI_2D_3D = "IS3D"
 CMD_INPUT_SIGNAL_ASPECT = "ISAS"
 CMD_INPUT_SIGNAL_MASK = "ISMA"
 CMD_INSTALLATION_MODE = "INML"
+# Deprecated compatibility constant; absent from the verified specifications.
+# It is deliberately excluded from command decoding and named operations.
 CMD_INSTALLATION_LENS_CONTROL = "INLC"
+# Directional continuous motor operations, verified for these model families.
+# Values are ASCII 1 (start) and 0 (stop), unlike single-step lens commands.
+LENS_COMMANDS: Final = {
+    "focus_near": "INFN",
+    "focus_far": "INFF",
+    "zoom_tele": "INZT",
+    "zoom_wide": "INZW",
+    "shift_left": "INSL",
+    "shift_right": "INSR",
+    "shift_up": "INSU",
+    "shift_down": "INSD",
+}
+# Single-shot operations take no data parameter (not the continuous start flag).
+LENS_STEP_COMMANDS: Final = {
+    "focus_near": "IN1N",
+    "focus_far": "IN1F",
+    "zoom_tele": "IN1T",
+    "zoom_wide": "IN1W",
+    "shift_left": "IN1L",
+    "shift_right": "IN1R",
+    "shift_up": "IN1U",
+    "shift_down": "IN1D",
+}
+LENS_MODELS: Final = {"NZ7", "NZ8", "NZ9", "NP5", "NZ800", "NZ900"}
 CMD_INSTALLATION_LENS_IMAGE_PATTERN = "INIP"
 CMD_INSTALLATION_LENS_LOCK = "INLL"
 CMD_INSTALLATION_SCREEN_ADJUST = "INSC"
@@ -187,6 +235,11 @@ CMD_PICTURE_MODE_HDR_CONTENT_TYPE = "PMCT"
 CMD_PICTURE_MODE_THEATER_OPTIMIZER = "PMNM"
 CMD_PICTURE_MODE_THEATER_OPTIMIZER_LEVEL = "PMNL"
 CMD_PICTURE_MODE_THEATER_OPTIMIZER_PROCESSING = "PMNP"
+CMD_PICTURE_MODE_DEEP_BLACK = "PMBK"
+CMD_PICTURE_MODE_HIGHLIGHT_COLOR = "PMBE"
+CMD_PICTURE_MODE_SMOOTHER = "PMST"
+CMD_INPUT_SIGNAL_ALLM = "ISAL"
+CMD_INPUT_SIGNAL_FILMMAKER_AUTO = "ISFS"
 CMD_LAN_SETUP_DHCP = "LSDS"
 CMD_LAN_SETUP_MAC_ADDRESS = "LSMA"
 CMD_LAN_SETUP_IP_ADDRESS = "LSIP"
@@ -214,6 +267,13 @@ KEY_MAP_TO_COMMAND: Final = {
     KEY_CLEAR_MOTION_DRIVE: CMD_PICTURE_MODE_CLEAR_MOTION_DRIVE,
     KEY_HDR_PROCESSING: CMD_PICTURE_MODE_HDR_PROCESSING,
     KEY_HDR_CONTENT_TYPE: CMD_PICTURE_MODE_HDR_CONTENT_TYPE,
+    KEY_ALLM: CMD_INPUT_SIGNAL_ALLM,
+    KEY_DEEP_BLACK: CMD_PICTURE_MODE_DEEP_BLACK,
+    KEY_FILMMAKER_AUTO: CMD_INPUT_SIGNAL_FILMMAKER_AUTO,
+    KEY_DEEP_COLOR: CMD_FUNCTION_DEEP_COLOR,
+    KEY_COLORIMETRY: CMD_FUNCTION_COLORIMETRY,
+    KEY_HIGHLIGHT_COLOR: CMD_PICTURE_MODE_HIGHLIGHT_COLOR,
+    KEY_SMOOTHER: CMD_PICTURE_MODE_SMOOTHER,
 }
 
 # Value constants
@@ -247,6 +307,10 @@ VAL_PICTURE_MODE = {
     "17": "filmmaker",
     "18": "frameadapt_hdr2",
     "19": "frameadapt_hdr3",
+    "1B": "vivid",
+    "1C": "natural_ll",
+    "1D": "hdr10_ll",
+    "1E": "hlg_ll",
 }
 VAL_INTELLIGENT_APERTURE = [OFF, AUTO1, AUTO2]
 VAL_LASER_DIMMING = [OFF, AUTO1, AUTO2, AUTO3]
@@ -395,6 +459,18 @@ VAL_FUNCTION_SOURCE = {
     "30": "uxga(1600x1200)",
     "31": "qxga",
     "32": "wqxga",
+    "34": "4096x2160_100hz",
+    "35": "3840x2160_100hz",
+    "36": "1080p100",
+    "37": "1080p120",
+    "38": "7680x4320_60hz",
+    "39": "7680x4320_50hz",
+    "3A": "7680x4320_30hz",
+    "3B": "7680x4320_25hz",
+    "3C": "7680x4320_24hz",
+    "3D": "wqhd60",
+    "3E": "wqhd120",
+    "3F": "7680x4320_48hz",
 }
 VAL_DEEP_COLOR = ["8bit", "10bit", "12bit"]
 VAL_COLOR_SPACE = ["rgb", "yuv"]
@@ -410,6 +486,8 @@ VAL_COLORIMETRY = [
     "bt2020(constant_luminance)",
     "bt2020(non-constant_luminance)",
     "srgb",
+    "dci_p3_d65",
+    "dci_p3_theater",
 ]
 VAL_HDR_MODES = [
     HDR_CONTENT_SDR,
@@ -417,22 +495,117 @@ VAL_HDR_MODES = [
     "smpte_st_2084",
     "hybrid_log",
     "none",
+    HDR_CONTENT_HDR10PLUS,
 ]
 VAL_HDR = {
     "0": VAL_HDR_MODES[0],
     "1": VAL_HDR_MODES[1],
     "2": VAL_HDR_MODES[2],
     "3": VAL_HDR_MODES[3],
+    "4": HDR_CONTENT_HDR10PLUS,
     "F": VAL_HDR_MODES[4],
 }
-VAL_HDR_LEVEL = [AUTO, "-2", "-1", "0", "1", "2"]
-VAL_HDR_PROCESSING = ["static", "frame", "scene"]
+VAL_HDR_LEVEL = [AUTO, "-2", "-1", "0", "1", "2", "auto_wide"]
+VAL_HDR_PROCESSING = [HDR_CONTENT_HDR10PLUS, "static", "frame", "scene"]
 VAL_HDR_CONTENT_TYPE = [
     AUTO,
     HDR_CONTENT_SDR,
-    "none",
+    HDR_CONTENT_HDR10PLUS,
     HDR_CONTENT_HDR10,
     HDR_CONTENT_HLG,
 ]
 VAL_THEATER_OPTIMIZER_LEVEL = ["reserved", LOW, MEDIUM, HIGH]
 VAL_THEATER_OPTIMIZER_PROCESSING = ["-", "start"]
+VAL_FILMMAKER_AUTO = ["manual", AUTO]
+VAL_HIGHLIGHT_COLOR = [LOW, MEDIUM, HIGH]
+VAL_SMOOTHER = {"0000": ON, "0001": OFF}
+
+# Modern HDMI receivers identify the YCbCr subsampling explicitly. Older
+# models report only RGB/YUV, so the projector applies this map by model.
+VAL_COLOR_SPACE_MODERN = {"0": "rgb", "1": "ycbcr422", "2": "ycbcr444", "3": "ycbcr420"}
+
+MODERN_MODELS = {"NZ800", "NZ900"}
+# These newer models changed several wire values and labels. Keep their
+# tables separate so legacy projectors retain their original interpretation.
+MODERN_COMMAND_VALUES = {
+    CMD_PICTURE_MODE: {
+        code: VAL_PICTURE_MODE[code]
+        for code in (
+            "00",
+            "01",
+            "03",
+            "04",
+            "0B",
+            "0C",
+            "0D",
+            "0E",
+            "0F",
+            "10",
+            "11",
+            "14",
+            "15",
+            "17",
+            "18",
+            "19",
+            "1B",
+            "1C",
+            "1D",
+            "1E",
+        )
+    },
+    CMD_PICTURE_MODE_COLOR_PROFILE: {
+        **{
+            code: VAL_COLOR_PROFILE[code]
+            for code in (
+                "00",
+                "01",
+                "02",
+                "03",
+                "04",
+                "06",
+                "08",
+                "0B",
+                "0E",
+                "0F",
+                "10",
+                "11",
+                "21",
+                "24",
+                "25",
+            )
+        },
+        "23": "vivid",
+        "26": AUTO,
+    },
+    CMD_LASER_DIMMING: {"0": OFF, "1": LOW, "2": HIGH, "3": "balanced"},
+    CMD_PICTURE_MODE_CLEAR_MOTION_DRIVE: {
+        "0": OFF,
+        "3": LOW,
+        "4": HIGH,
+        "5": "inverse_telecine",
+    },
+    CMD_PICTURE_MODE_GRAPHICS_MODE: {
+        "0": "standard",
+        "1": "high-res",
+        "2": "high-res2",
+        "F": OFF,
+    },
+    CMD_PICTURE_MODE_THEATER_OPTIMIZER_LEVEL: {
+        "0": AUTO,
+        "1": "-2",
+        "2": "-1",
+        "3": "0",
+        "4": "1",
+        "5": "2",
+        "6": "auto_wide",
+    },
+    CMD_INPUT_SIGNAL_ASPECT: {"2": "zoom", "3": AUTO, "4": "native"},
+    CMD_INPUT_SIGNAL_MASK: {"1": ON, "2": OFF},
+    CMD_INPUT_SIGNAL_HDMI_2D_3D: {
+        "0": "2d",
+        "1": AUTO,
+        "3": "side_by_side",
+        "4": "top_bottom",
+    },
+    CMD_FUNCTION_COLOR_SPACE: VAL_COLOR_SPACE_MODERN,
+}

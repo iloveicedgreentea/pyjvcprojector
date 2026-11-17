@@ -1,13 +1,13 @@
-"""Functional tests."""
+"""Opt-in, read-only checks against a real projector."""
 
-import asyncio
 import logging
 import os
+
 import pytest
+
 from jvcprojector.projector import JvcProjector
 from jvcprojector import const
 
-logging.basicConfig(level=logging.WARNING)
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -16,29 +16,18 @@ _LOGGER = logging.getLogger(__name__)
     os.environ.get("RUN_INTEGRATION") != "true", reason="Set RUN_INTEGRATION to true"
 )
 async def test_connect():
-    """Test connect succeeds."""
+    """Read real device information without changing power or picture settings."""
     ip = os.getenv("JVC_IP")
-    password = os.getenv("JVC_PASSWORD")
-    if not ip or not password:
-        _LOGGER.error("Set JVC_IP and JVC_PASSWORD environment variables")
-        pytest.fail("Set JVC_IP and JVC_PASSWORD environment variables")
+    if not ip:
+        pytest.fail("Set JVC_IP to the projector's hostname or IP address")
 
-    jp = JvcProjector(ip, password=password)
-    await jp.connect()
-
-    _LOGGER.info("Projector info:")
-    _LOGGER.info(await jp.get_info())
-
-    if not await jp.is_on():
-        await jp.power_on()
-        _LOGGER.info("Waiting for projector to warmup...")
-        while not await jp.is_on():
-            await asyncio.sleep(3)
-
-    await jp.send_command(const.KEY_LASER_POWER, const.MEDIUM)
-    _LOGGER.info("Current state:")
-    state = await jp.get_state()
-    for key, value in state.items():
-        _LOGGER.info("%s: %s", key, value)
-
-    await jp.disconnect()
+    projector = JvcProjector(ip, password=os.getenv("JVC_PASSWORD"))
+    try:
+        await projector.connect(get_info=True)
+        state = await projector.get_state()
+        assert state[const.KEY_POWER] in const.VAL_POWER
+        _LOGGER.info(
+            "Projector model: %s; power: %s", projector.model, state[const.KEY_POWER]
+        )
+    finally:
+        await projector.disconnect()
